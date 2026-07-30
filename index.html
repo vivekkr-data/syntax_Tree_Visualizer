@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Interactive syntax tree visualizer for learning compiler design." />
+  <title>Syntax Tree Visualizer</title>
+  <link rel="stylesheet" href="style.css" />
+  <script defer src="tokenizer.js"></script>
+  <script defer src="parser.js"></script>
+  <script defer src="visualizer.js"></script>
+  <script defer src="app.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">Compiler Design Project</p>
+      <h1>Syntax Tree Visualizer</h1>
+      <p class="subtitle">Write code, generate an Abstract Syntax Tree, inspect tokens, and animate tree traversal.</p>
+    </div>
+    <button id="themeToggle" class="icon-button" type="button" aria-label="Toggle dark mode" title="Toggle theme">◐</button>
+  </header>
+
+  <main class="app-shell">
+    <section class="editor-panel panel" aria-labelledby="editorTitle">
+      <div class="section-heading">
+        <div>
+          <h2 id="editorTitle">Source Code</h2>
+          <p>Supported: variables, assignments, expressions, print, if/else, while, and function calls.</p>
+        </div>
+        <label class="sample-picker">
+          Example
+          <select id="sampleSelect">
+            <option value="expression">Expression</option>
+            <option value="variables">Variables</option>
+            <option value="condition">If / Else</option>
+            <option value="loop">While Loop</option>
+          </select>
+        </label>
+      </div>
+
+      <label class="sr-only" for="sourceInput">Program source code</label>
+      <textarea id="sourceInput" spellcheck="false" aria-describedby="grammarHelp"></textarea>
+
+      <div class="button-row">
+        <button id="visualizeBtn" class="primary-button" type="button">Generate Syntax Tree</button>
+        <button id="clearBtn" class="secondary-button" type="button">Clear</button>
+      </div>
+
+      <p id="grammarHelp" class="helper-text">
+        Tip: End normal statements with a semicolon. Example: <code>let result = 4 + 5 * 2;</code>
+      </p>
+      <div id="messageBox" class="message hidden" role="alert" aria-live="polite"></div>
+    </section>
+
+    <section class="workspace-panel panel" aria-labelledby="treeTitle">
+      <div class="section-heading tree-heading">
+        <div>
+          <h2 id="treeTitle">Abstract Syntax Tree</h2>
+          <p>Click a node to inspect it. Drag to pan and use the mouse wheel to zoom.</p>
+        </div>
+        <div class="toolbar" aria-label="Tree controls">
+          <button id="zoomOutBtn" class="tool-button" type="button" title="Zoom out">−</button>
+          <button id="zoomInBtn" class="tool-button" type="button" title="Zoom in">+</button>
+          <button id="fitBtn" class="tool-button text-tool" type="button" title="Fit tree">Fit</button>
+          <button id="resetViewBtn" class="tool-button text-tool" type="button" title="Reset view">Reset</button>
+        </div>
+      </div>
+
+      <div class="canvas-wrap" id="canvasWrap">
+        <svg id="treeSvg" role="img" aria-label="Generated abstract syntax tree">
+          <g id="viewportGroup">
+            <g id="edgeLayer"></g>
+            <g id="nodeLayer"></g>
+          </g>
+        </svg>
+        <div id="emptyState" class="empty-state">
+          <div class="empty-icon">⌘</div>
+          <h3>No tree generated</h3>
+          <p>Enter code and press “Generate Syntax Tree”.</p>
+        </div>
+      </div>
+
+      <div class="traversal-bar">
+        <label>
+          Traversal
+          <select id="traversalSelect">
+            <option value="preorder">Preorder</option>
+            <option value="postorder">Postorder</option>
+            <option value="levelorder">Level-order</option>
+          </select>
+        </label>
+        <label>
+          Speed
+          <input id="speedRange" type="range" min="150" max="1400" value="650" step="50" />
+        </label>
+        <button id="playTraversalBtn" class="secondary-button compact" type="button">▶ Play</button>
+        <button id="stopTraversalBtn" class="secondary-button compact" type="button">■ Stop</button>
+      </div>
+      <div id="traversalOutput" class="traversal-output" aria-live="polite">Traversal order will appear here.</div>
+    </section>
+
+    <aside class="details-panel panel" aria-labelledby="detailsTitle">
+      <div class="tabs" role="tablist" aria-label="Compiler information">
+        <button class="tab active" type="button" role="tab" aria-selected="true" data-tab="details">Node</button>
+        <button class="tab" type="button" role="tab" aria-selected="false" data-tab="tokens">Tokens</button>
+        <button class="tab" type="button" role="tab" aria-selected="false" data-tab="ast">AST JSON</button>
+        <button class="tab" type="button" role="tab" aria-selected="false" data-tab="grammar">Grammar</button>
+      </div>
+
+      <div id="detailsTab" class="tab-content active" role="tabpanel">
+        <h2 id="detailsTitle">Selected Node</h2>
+        <div id="nodeDetails" class="placeholder-copy">Click any syntax-tree node to view its type and properties.</div>
+      </div>
+
+      <div id="tokensTab" class="tab-content" role="tabpanel">
+        <div class="tab-title-row">
+          <h2>Token Stream</h2>
+          <span id="tokenCount" class="badge">0 tokens</span>
+        </div>
+        <div id="tokenList" class="token-list placeholder-copy">Tokens will appear after parsing.</div>
+      </div>
+
+      <div id="astTab" class="tab-content" role="tabpanel">
+        <div class="tab-title-row">
+          <h2>AST JSON</h2>
+          <button id="downloadJsonBtn" class="link-button" type="button">Download JSON</button>
+        </div>
+        <pre id="astJson" class="code-output">Generate a tree to view JSON.</pre>
+      </div>
+
+      <div id="grammarTab" class="tab-content" role="tabpanel">
+        <h2>Grammar Summary</h2>
+        <pre class="grammar-block">program      → statement* EOF
+statement    → "let" ID "=" expression ";"
+             | ID "=" expression ";"
+             | "print" "(" expression ")" ";"
+             | "if" "(" expression ")" block
+               ("else" block)?
+             | "while" "(" expression ")" block
+             | expression ";"
+block        → "{" statement* "}"
+expression   → logical-or
+logical-or   → logical-and ("||" logical-and)*
+logical-and  → equality ("&&" equality)*
+equality     → comparison (("==" | "!=") comparison)*
+comparison   → term (("<" | "<=" | ">" | ">=") term)*
+term         → factor (("+" | "-") factor)*
+factor       → unary (("*" | "/" | "%") unary)*
+unary        → ("!" | "-") unary | primary
+primary      → NUMBER | STRING | BOOLEAN | ID
+             | ID "(" arguments? ")"
+             | "(" expression ")"</pre>
+      </div>
+
+      <div class="export-row">
+        <button id="downloadSvgBtn" class="secondary-button" type="button">Export SVG</button>
+      </div>
+    </aside>
+  </main>
+
+  <footer>
+    <p>Built as an interactive compiler-design teaching tool using HTML, CSS, JavaScript, tokenization, recursive-descent parsing, and SVG.</p>
+  </footer>
+</body>
+</html>
