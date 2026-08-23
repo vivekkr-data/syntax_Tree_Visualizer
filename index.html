@@ -19,22 +19,37 @@
         <p class="eyebrow">Compiler Design Lab Project</p>
         <h1>Syntax Tree Visualizer</h1>
         <p class="subtitle">See how source code becomes tokens, an Abstract Syntax Tree, and a traversal sequence.</p>
+        <div class="project-badges" aria-label="Project highlights">
+          <span>Recursive-Descent Parser</span>
+          <span>Interactive SVG</span>
+          <span>Zero Dependencies</span>
+        </div>
       </div>
     </div>
-    <button id="themeToggle" class="icon-button theme-button" type="button" aria-label="Switch to dark mode" title="Toggle theme">
-      <span aria-hidden="true">◐</span><span class="theme-label">Theme</span>
-    </button>
+    <div class="header-actions">
+      <span class="live-badge"><i aria-hidden="true"></i> Interactive Lab</span>
+      <button id="themeToggle" class="icon-button theme-button" type="button" aria-label="Switch to dark mode" title="Toggle theme">
+        <span aria-hidden="true">◐</span><span class="theme-label">Theme</span>
+      </button>
+    </div>
   </header>
 
-  <div class="pipeline" aria-label="Compiler pipeline">
-    <span><b>1</b> Source Code</span><i>→</i>
-    <span><b>2</b> Lexical Analysis</span><i>→</i>
-    <span><b>3</b> Syntax Analysis</span><i>→</i>
-    <span><b>4</b> AST Visualization</span>
-  </div>
+  <section class="pipeline" aria-label="Compiler pipeline">
+    <div class="pipeline-heading">
+      <span>Compiler Front-End Flow</span>
+      <small>Every stage is implemented in JavaScript</small>
+    </div>
+    <div class="pipeline-track">
+      <span><b>1</b><em>Source Code</em></span><i>→</i>
+      <span><b>2</b><em>Lexical Analysis</em></span><i>→</i>
+      <span><b>3</b><em>Syntax Analysis</em></span><i>→</i>
+      <span><b>4</b><em>AST Visualization</em></span>
+    </div>
+  </section>
 
   <main class="app-shell">
     <section class="editor-panel panel" aria-labelledby="editorTitle">
+      <div class="panel-label">01 · Input</div>
       <div class="section-heading">
         <div>
           <div class="title-with-icon"><span aria-hidden="true">&lt;/&gt;</span><h2 id="editorTitle">Source Code</h2></div>
@@ -73,6 +88,7 @@
     </section>
 
     <section class="workspace-panel panel" aria-labelledby="treeTitle">
+      <div class="panel-label workspace-label">02 · Visual Output</div>
       <div class="section-heading tree-heading">
         <div>
           <div class="title-with-icon"><span aria-hidden="true">⌘</span><h2 id="treeTitle">Abstract Syntax Tree</h2></div>
@@ -134,6 +150,13 @@
     </section>
 
     <aside class="details-panel panel" aria-labelledby="detailsTitle">
+      <div class="inspector-heading">
+        <div>
+          <span class="panel-label">03 · Analysis</span>
+          <strong>Compiler Inspector</strong>
+        </div>
+        <span class="inspector-status"><i aria-hidden="true"></i> Live</span>
+      </div>
       <div class="tabs" role="tablist" aria-label="Compiler information">
         <button class="tab active" type="button" role="tab" aria-selected="true" data-tab="details">Node</button>
         <button class="tab" type="button" role="tab" aria-selected="false" data-tab="tokens">Tokens</button>
@@ -206,7 +229,7 @@ primary      → NUMBER | STRING | BOOLEAN | ID
   </main>
 
   <footer>
-    <p><strong>Syntax Tree Visualizer</strong> · HTML, CSS, JavaScript, recursive-descent parsing and SVG · Works completely in the browser</p>
+    <p><strong>Syntax Tree Visualizer</strong> · Built for Compiler Design Lab using HTML, CSS, JavaScript, recursive-descent parsing and SVG</p>
   </footer>
 </body>
 </html>
