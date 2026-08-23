@@ -277,10 +277,3 @@ Keeping the grammar focused makes every implemented compiler stage visible and e
 - Compare a concrete parse tree with the AST
 - Add an interpreter for step-by-step execution
 
-## 16. Viva Summary
-
-If asked to explain the project in one sentence:
-
-> The project performs lexical analysis and recursive-descent syntax analysis on an educational C-like program, constructs an AST, and displays it as an interactive SVG tree with traversal and node inspection.
-
-For detailed questions and answers, see [`VIVA_QUESTIONS.md`](VIVA_QUESTIONS.md).
