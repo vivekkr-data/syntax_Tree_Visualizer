@@ -221,6 +221,7 @@
 
       this.svg.addEventListener('pointerdown', event => {
         if (event.button !== 0) return;
+        if (event.target instanceof Element && event.target.closest('.node-group')) return;
         this.dragging = true;
         this.lastPointer = { x: event.clientX, y: event.clientY };
         this.svg.setPointerCapture(event.pointerId);
