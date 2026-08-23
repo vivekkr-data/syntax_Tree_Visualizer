@@ -419,6 +419,9 @@
       style.textContent = `
         .edge{fill:none;stroke:#94a3b8;stroke-width:2}
         .node-rect{fill:#fff;stroke:#64748b;stroke-width:2;rx:12;ry:12}
+        .node-group[data-kind="statement"] .node-rect{fill:#f0efff;stroke:#6157e8}
+        .node-group[data-kind="expression"] .node-rect{fill:#eafcff;stroke:#0891b2}
+        .node-group[data-kind="value"] .node-rect{fill:#ecfbf4;stroke:#059669}
         .node-title{fill:#172033;font:700 13px sans-serif;text-anchor:middle;dominant-baseline:middle}
         .node-value{fill:#64748b;font:11px sans-serif;text-anchor:middle;dominant-baseline:middle}
       `;
