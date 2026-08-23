@@ -26,7 +26,7 @@ Compiler data structures such as syntax trees are difficult to understand only t
 
 ## 5. Scope
 
-The current project supports variable declarations, assignments, arithmetic and logical expressions, print statements, if/else conditions, while loops, literals, identifiers, function calls, and comments. It focuses on lexical analysis, syntax analysis, and AST visualization. Semantic analysis and machine-code generation are outside the current scope.
+The current project supports inferred and typed variable declarations, functions, arrays, indexing, simple pointer expressions, assignments, arithmetic, logical and bitwise expressions, print statements, if/else chains, while/for/do-while loops, return/break/continue statements, literals, function calls, and comments. It focuses on lexical analysis, syntax analysis, and AST visualization. Full language standards, semantic analysis, and machine-code generation are outside the current scope.
 
 ## 6. Technologies Used
 
@@ -201,6 +201,22 @@ while (count < 3) {
 
 Expected: `WhileStatement` with condition and body.
 
+### Test 5: Function, Array, and For Loop
+
+Input:
+
+```text
+int sum(int values[5]) {
+  int total = 0;
+  for (int i = 0; i < 5; i++) {
+    total += values[i];
+  }
+  return total;
+}
+```
+
+Expected: function, parameter, declaration, for-loop, assignment, index, update, and return nodes are generated.
+
 ## 13. Advantages
 
 - Provides visual understanding of compiler concepts.
@@ -212,7 +228,7 @@ Expected: `WhileStatement` with condition and body.
 
 ## 14. Limitations
 
-- It implements a small educational language rather than full C, C++, or Java.
+- It implements a strong educational C-like subset rather than every rule of full C, C++, or Java.
 - It does not perform type checking.
 - It does not execute the program.
 - Very large trees may become visually dense.

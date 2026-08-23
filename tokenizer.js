@@ -11,10 +11,17 @@
     EOF: 'EOF'
   });
 
-  const KEYWORDS = new Set(['let', 'print', 'if', 'else', 'while', 'true', 'false']);
-  const TWO_CHAR_OPERATORS = new Set(['==', '!=', '<=', '>=', '&&', '||']);
-  const ONE_CHAR_OPERATORS = new Set(['+', '-', '*', '/', '%', '=', '!', '<', '>']);
-  const PUNCTUATION = new Set(['(', ')', '{', '}', ';', ',']);
+  const KEYWORDS = new Set([
+    'let', 'var', 'const', 'int', 'float', 'double', 'char', 'string', 'bool', 'void',
+    'function', 'print', 'if', 'else', 'while', 'for', 'do', 'return', 'break',
+    'continue', 'true', 'false'
+  ]);
+  const TWO_CHAR_OPERATORS = new Set([
+    '==', '!=', '<=', '>=', '&&', '||', '++', '--', '+=', '-=', '*=', '/=', '%=',
+    '<<', '>>'
+  ]);
+  const ONE_CHAR_OPERATORS = new Set(['+', '-', '*', '/', '%', '=', '!', '<', '>', '&', '|', '^', '~', '?']);
+  const PUNCTUATION = new Set(['(', ')', '{', '}', '[', ']', ';', ',', ':']);
 
   class TokenizerError extends Error {
     constructor(message, line, column) {

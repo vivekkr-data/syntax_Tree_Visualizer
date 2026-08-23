@@ -23,20 +23,31 @@ A browser-based Compiler Design lab project that shows the complete journey from
 - Light and dark theme
 - Friendly syntax-error reporting
 - Responsive design for desktop and mobile
+- Advanced C-like constructs for stronger live demonstrations
 
 ## Supported Language
 
 The visualizer accepts:
 
-- Variable declarations: `let x = 10;`
-- Assignments: `x = x + 1;`
+- Variable declarations: `let x = 10;`, `const limit = 5;`, `int count = 0;`
+- Multiple declarations: `int a = 1, b = 2;`
+- Arrays and indexing: `int values[3] = {1, 2, 3};` and `values[0]`
+- Simple pointers and address expressions: `int *ptr = &value;`
+- Assignments: `x = x + 1;`, `total += x;`
 - Arithmetic operators: `+ - * / %`
 - Comparison operators: `< <= > >= == !=`
 - Logical operators: `&& || !`
+- Bitwise and shift operators: `& | ^ ~ << >>`
+- Prefix and postfix updates: `++x`, `x--`
+- Conditional expression: `condition ? first : second`
 - Number, string, and Boolean literals
 - `print(expression);`
 - `if (...) { ... } else { ... }`
+- `else if` chains and single-statement branches
 - `while (...) { ... }`
+- `for (...) { ... }` and `do { ... } while (...);`
+- `break;`, `continue;`, and `return expression;`
+- Functions using `function sum(a, b) { ... }` or `int sum(int a, int b) { ... }`
 - Function-call expressions such as `max(a, b);`
 - Single-line and block comments
 
@@ -104,24 +115,26 @@ Interactive tree, traversal and node details
 
 ```text
 program      → statement* EOF
-statement    → "let" ID "=" expression ";"
-             | ID "=" expression ";"
+statement    → declaration | function | expression ";"
              | "print" "(" expression ")" ";"
-             | "if" "(" expression ")" block ("else" block)?
-             | "while" "(" expression ")" block
-             | expression ";"
+             | "if" "(" expression ")" statement ("else" statement)?
+             | "while" "(" expression ")" statement
+             | "for" "(" init ";" test ";" update ")" statement
+             | "do" statement "while" "(" expression ")" ";"
+             | "return" expression? ";" | "break" ";" | "continue" ";"
 block        → "{" statement* "}"
-expression   → logical-or
+declaration  → (let | var | const | type) declarator ("," declarator)* ";"
+function     → ("function" | type) ID "(" parameters? ")" block
+expression   → assignment | conditional
 logical-or   → logical-and ("||" logical-and)*
 logical-and  → equality ("&&" equality)*
 equality     → comparison (("==" | "!=") comparison)*
 comparison   → term (("<" | "<=" | ">" | ">=") term)*
 term         → factor (("+" | "-") factor)*
 factor       → unary (("*" | "/" | "%") unary)*
-unary        → ("!" | "-") unary | primary
-primary      → NUMBER | STRING | BOOLEAN | ID
-             | ID "(" arguments? ")"
-             | "(" expression ")"
+unary        → ("!" | "-" | "+" | "~" | "++" | "--") unary | postfix
+postfix      → primary (call | index | "++" | "--")*
+primary      → literal | ID | array | "(" expression ")"
 ```
 
 ## Algorithm Summary
@@ -139,9 +152,9 @@ primary      → NUMBER | STRING | BOOLEAN | ID
 - Add semantic analysis and symbol table
 - Generate three-address code
 - Add code execution/interpreter support
-- Support functions and return statements
 - Add syntax-directed translation
 - Compare parse tree and abstract syntax tree
+- Add structures/classes and switch statements
 
 ## Academic Note
 

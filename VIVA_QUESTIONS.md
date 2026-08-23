@@ -99,3 +99,23 @@ Play highlights every node automatically after a fixed delay. Step highlights on
 ## 25. Why are no external libraries used?
 
 Using plain JavaScript and SVG keeps the project lightweight and makes the tokenizer, parser, layout, and traversal logic easy to explain during viva.
+
+## 26. How does the parser handle a for loop?
+
+It parses four parts: initializer, condition, update expression, and loop body. Any of the first three clauses can be empty where the grammar allows it.
+
+## 27. How are arrays represented in the AST?
+
+An array initializer becomes an `ArrayExpression`. Access such as `values[i]` becomes an `IndexExpression` with separate object and index children.
+
+## 28. How are assignment operators handled?
+
+The assignment grammar recognizes `=`, `+=`, `-=`, `*=`, `/=`, and `%=`. Assignment is right-associative and only identifiers or indexed array elements are accepted as targets.
+
+## 29. Does the project parse complete C or Java?
+
+No. It parses a documented educational C-like subset. A production C or Java compiler requires a much larger grammar, preprocessing, semantic analysis, and type checking.
+
+## 30. Which advanced programs can be demonstrated?
+
+Recursive functions, typed functions, nested conditions, for/while/do-while loops, arrays, compound assignments, ternary expressions, bitwise operations, and nested function calls can be demonstrated.

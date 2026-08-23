@@ -5,7 +5,8 @@
     expression: `let result = 4 + 5 * 2;\nprint(result);`,
     variables: `let length = 12;\nlet width = 8;\nlet area = length * width;\nprint(area);`,
     condition: `let marks = 78;\nif (marks >= 40) {\n  print("Pass");\n} else {\n  print("Fail");\n}`,
-    loop: `let count = 0;\nwhile (count < 3) {\n  print(count);\n  count = count + 1;\n}`
+    loop: `let count = 0;\nwhile (count < 3) {\n  print(count);\n  count = count + 1;\n}`,
+    advanced: `int factorial(int n) {\n  if (n <= 1) {\n    return 1;\n  }\n  return n * factorial(n - 1);\n}\n\nint main(void) {\n  int values[5] = {1, 2, 3, 4, 5};\n  int total = 0;\n\n  for (int i = 0; i < 5; i++) {\n    if (values[i] % 2 == 0) {\n      continue;\n    }\n    total += factorial(values[i]);\n  }\n\n  print(total);\n  return 0;\n}`
   };
 
   const elements = {
@@ -114,6 +115,13 @@
     if (node.type === 'UnaryExpression') return `${node.operator}${expressionSummary(node.argument)}`;
     if (node.type === 'GroupingExpression') return `(${expressionSummary(node.expression)})`;
     if (node.type === 'CallExpression') return `${expressionSummary(node.callee)}(...)`;
+    if (node.type === 'ArrayExpression') return `[${node.elements.map(expressionSummary).join(', ')}]`;
+    if (node.type === 'IndexExpression') return `${expressionSummary(node.object)}[${expressionSummary(node.index)}]`;
+    if (node.type === 'AssignmentExpression') return `${expressionSummary(node.left)} ${node.operator} ${expressionSummary(node.right)}`;
+    if (node.type === 'UpdateExpression') return node.prefix
+      ? `${node.operator}${expressionSummary(node.argument)}`
+      : `${expressionSummary(node.argument)}${node.operator}`;
+    if (node.type === 'ConditionalExpression') return `${expressionSummary(node.test)} ? … : …`;
     return node.type;
   }
 
@@ -122,7 +130,19 @@
     const visit = node => {
       if (!node || typeof node !== 'object') return;
       if (node.type === 'VariableDeclaration') {
-        symbols.push({ name: node.name, kind: 'variable', value: expressionSummary(node.initializer) });
+        const array = node.arraySize ? '[]' : '';
+        symbols.push({
+          name: node.name,
+          kind: `${node.dataType || node.kind || 'variable'}${array}`,
+          value: expressionSummary(node.initializer)
+        });
+      }
+      if (node.type === 'Parameter') {
+        symbols.push({
+          name: node.name,
+          kind: `parameter · ${node.dataType || 'any'}${node.arraySize ? '[]' : ''}`,
+          value: '—'
+        });
       }
       Object.values(node).forEach(value => {
         if (Array.isArray(value)) value.forEach(visit);

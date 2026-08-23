@@ -7,32 +7,61 @@
     if (!node || typeof node !== 'object') return [];
     switch (node.type) {
       case 'Program': return node.body;
-      case 'VariableDeclaration': return [node.initializer];
+      case 'VariableDeclaration': return [node.arraySize, node.initializer].filter(Boolean);
+      case 'VariableDeclarationList': return node.declarations;
+      case 'FunctionDeclaration': return [...node.parameters, node.body];
+      case 'Parameter': return node.arraySize ? [node.arraySize] : [];
       case 'AssignmentStatement': return [node.value];
+      case 'AssignmentExpression': return [node.left, node.right];
       case 'PrintStatement': return [node.expression];
       case 'IfStatement': return [node.condition, node.consequent, ...(node.alternate ? [node.alternate] : [])];
       case 'WhileStatement': return [node.condition, node.body];
+      case 'ForStatement': return [node.initializer, node.condition, node.update, node.body].filter(Boolean);
+      case 'DoWhileStatement': return [node.body, node.condition];
+      case 'ReturnStatement': return node.argument ? [node.argument] : [];
       case 'BlockStatement': return node.body;
       case 'ExpressionStatement': return [node.expression];
       case 'BinaryExpression': return [node.left, node.right];
       case 'UnaryExpression': return [node.argument];
+      case 'UpdateExpression': return [node.argument];
+      case 'ConditionalExpression': return [node.test, node.consequent, node.alternate];
       case 'GroupingExpression': return [node.expression];
       case 'CallExpression': return [node.callee, ...node.arguments];
+      case 'ArrayExpression': return node.elements;
+      case 'IndexExpression': return [node.object, node.index];
       default: return [];
     }
   }
 
   function nodeLabel(node) {
     switch (node.type) {
-      case 'VariableDeclaration': return { title: 'VariableDeclaration', value: node.name };
+      case 'VariableDeclaration': {
+        const prefix = node.dataType || node.kind || '';
+        const pointer = '*'.repeat(node.pointerDepth || 0);
+        const array = node.arraySize ? '[]' : '';
+        return { title: 'VariableDeclaration', value: `${prefix} ${pointer}${node.name}${array}`.trim() };
+      }
+      case 'VariableDeclarationList': return { title: 'DeclarationList', value: `${node.declarations.length} variables` };
+      case 'FunctionDeclaration': return { title: 'FunctionDeclaration', value: `${node.name}() → ${node.returnType}` };
+      case 'Parameter': return { title: 'Parameter', value: `${node.dataType || 'any'} ${'*'.repeat(node.pointerDepth || 0)}${node.name}${node.arraySize ? '[]' : ''}` };
       case 'AssignmentStatement': return { title: 'Assignment', value: node.name };
+      case 'AssignmentExpression': return { title: 'Assignment', value: node.operator };
       case 'BinaryExpression': return { title: 'BinaryExpression', value: node.operator };
       case 'UnaryExpression': return { title: 'UnaryExpression', value: node.operator };
+      case 'UpdateExpression': return { title: 'UpdateExpression', value: `${node.prefix ? 'prefix ' : 'postfix '}${node.operator}` };
+      case 'ConditionalExpression': return { title: 'ConditionalExpression', value: '?:' };
       case 'Literal': return { title: 'Literal', value: JSON.stringify(node.value) };
       case 'Identifier': return { title: 'Identifier', value: node.name };
       case 'CallExpression': return { title: 'CallExpression', value: `${node.arguments.length} arg(s)` };
       case 'IfStatement': return { title: 'IfStatement', value: node.alternate ? 'with else' : 'no else' };
       case 'WhileStatement': return { title: 'WhileStatement', value: 'loop' };
+      case 'ForStatement': return { title: 'ForStatement', value: 'init · test · update' };
+      case 'DoWhileStatement': return { title: 'DoWhileStatement', value: 'post-test loop' };
+      case 'ReturnStatement': return { title: 'ReturnStatement', value: node.argument ? 'with value' : 'void' };
+      case 'BreakStatement': return { title: 'BreakStatement', value: 'exit loop' };
+      case 'ContinueStatement': return { title: 'ContinueStatement', value: 'next iteration' };
+      case 'ArrayExpression': return { title: 'ArrayExpression', value: `${node.elements.length} element(s)` };
+      case 'IndexExpression': return { title: 'IndexExpression', value: '[]' };
       case 'BlockStatement': return { title: 'BlockStatement', value: `${node.body.length} statement(s)` };
       case 'Program': return { title: 'Program', value: `${node.body.length} statement(s)` };
       default: return { title: node.type, value: '' };

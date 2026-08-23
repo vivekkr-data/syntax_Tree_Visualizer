@@ -5,11 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="Interactive syntax tree visualizer for learning compiler design." />
   <title>Syntax Tree Visualizer</title>
-  <link rel="stylesheet" href="style.css?v=20260823-2" />
-  <script defer src="tokenizer.js?v=20260823-2"></script>
-  <script defer src="parser.js?v=20260823-2"></script>
-  <script defer src="visualizer.js?v=20260823-2"></script>
-  <script defer src="app.js?v=20260823-2"></script>
+  <link rel="stylesheet" href="style.css?v=20260823-3" />
+  <script defer src="tokenizer.js?v=20260823-3"></script>
+  <script defer src="parser.js?v=20260823-3"></script>
+  <script defer src="visualizer.js?v=20260823-3"></script>
+  <script defer src="app.js?v=20260823-3"></script>
 </head>
 <body>
   <header class="topbar">
@@ -53,7 +53,7 @@
       <div class="section-heading">
         <div>
           <div class="title-with-icon"><span aria-hidden="true">&lt;/&gt;</span><h2 id="editorTitle">Source Code</h2></div>
-          <p>Supported: variables, assignments, expressions, print, if/else, while, and function calls.</p>
+          <p>Supported: typed variables, functions, arrays, conditions, loops, calls, returns, and advanced expressions.</p>
         </div>
         <label class="sample-picker">
           Example
@@ -62,6 +62,7 @@
             <option value="variables">Variables</option>
             <option value="condition">If / Else</option>
             <option value="loop">While Loop</option>
+            <option value="advanced">Advanced Program</option>
           </select>
         </label>
       </div>
@@ -201,25 +202,28 @@
       <div id="grammarTab" class="tab-content" role="tabpanel">
         <h2>Grammar Summary</h2>
         <pre class="grammar-block">program      → statement* EOF
-statement    → "let" ID "=" expression ";"
-             | ID "=" expression ";"
+statement    → declaration | function | expression ";"
              | "print" "(" expression ")" ";"
-             | "if" "(" expression ")" block
-               ("else" block)?
-             | "while" "(" expression ")" block
-             | expression ";"
+             | "if" "(" expression ")" statement
+               ("else" statement)?
+             | "while" "(" expression ")" statement
+             | "for" "(" init ";" test ";" update ")" statement
+             | "do" statement "while" "(" expression ")" ";"
+             | "return" expression? ";" | "break" ";" | "continue" ";"
 block        → "{" statement* "}"
-expression   → logical-or
+declaration  → (let | var | const | type) declarator ("," declarator)* ";"
+function     → ("function" | type) ID "(" parameters? ")" block
+expression   → assignment | conditional
+assignment   → expression ("=" | "+=" | "-=" | "*=" | "/=") expression
 logical-or   → logical-and ("||" logical-and)*
 logical-and  → equality ("&&" equality)*
 equality     → comparison (("==" | "!=") comparison)*
 comparison   → term (("<" | "<=" | ">" | ">=") term)*
 term         → factor (("+" | "-") factor)*
 factor       → unary (("*" | "/" | "%") unary)*
-unary        → ("!" | "-") unary | primary
-primary      → NUMBER | STRING | BOOLEAN | ID
-             | ID "(" arguments? ")"
-             | "(" expression ")"</pre>
+unary        → ("!" | "-" | "+" | "~" | "++" | "--") unary | postfix
+postfix      → primary (call | index | "++" | "--")*
+primary      → literal | ID | array | "(" expression ")"</pre>
       </div>
 
       <div class="export-row">
