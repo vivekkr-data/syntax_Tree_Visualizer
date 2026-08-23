@@ -22,7 +22,14 @@
     nodeDetails: document.getElementById('nodeDetails'),
     tokenList: document.getElementById('tokenList'),
     tokenCount: document.getElementById('tokenCount'),
+    symbolCount: document.getElementById('symbolCount'),
+    symbolTable: document.getElementById('symbolTable'),
     astJson: document.getElementById('astJson'),
+    nodeCount: document.getElementById('nodeCount'),
+    treeDepth: document.getElementById('treeDepth'),
+    tokenStat: document.getElementById('tokenStat'),
+    parserStatus: document.getElementById('parserStatus'),
+    zoomLevel: document.getElementById('zoomLevel'),
     zoomInBtn: document.getElementById('zoomInBtn'),
     zoomOutBtn: document.getElementById('zoomOutBtn'),
     fitBtn: document.getElementById('fitBtn'),
@@ -30,22 +37,27 @@
     traversalSelect: document.getElementById('traversalSelect'),
     speedRange: document.getElementById('speedRange'),
     playTraversalBtn: document.getElementById('playTraversalBtn'),
+    stepTraversalBtn: document.getElementById('stepTraversalBtn'),
     stopTraversalBtn: document.getElementById('stopTraversalBtn'),
     traversalOutput: document.getElementById('traversalOutput'),
     themeToggle: document.getElementById('themeToggle'),
     downloadJsonBtn: document.getElementById('downloadJsonBtn'),
+    copyJsonBtn: document.getElementById('copyJsonBtn'),
     downloadSvgBtn: document.getElementById('downloadSvgBtn')
   };
 
   let currentAst = null;
   let currentTokens = [];
+  let traversalStep = 0;
+  let stepTraversalType = '';
 
   const visualizer = new SyntaxTreeView.TreeVisualizer(
     elements.treeSvg,
     elements.viewportGroup,
     elements.edgeLayer,
     elements.nodeLayer,
-    showNodeDetails
+    showNodeDetails,
+    scale => { elements.zoomLevel.textContent = `${Math.round(scale * 100)}%`; }
   );
 
   function parseAndRender() {
@@ -66,13 +78,84 @@
       elements.emptyState.classList.add('hidden');
       renderTokens(currentTokens.filter(token => token.type !== 'EOF'));
       elements.astJson.textContent = JSON.stringify(currentAst, null, 2);
+      renderSymbolTable(currentAst);
+      updateTreeStats();
       elements.nodeDetails.innerHTML = '<div class="placeholder-copy">Tree generated. Click a node to inspect its properties.</div>';
       elements.traversalOutput.textContent = 'Traversal order will appear here.';
+      traversalStep = 0;
+      stepTraversalType = '';
       showMessage(`Tree generated successfully: ${visualizer.nodes.length} nodes.`, 'success');
     } catch (error) {
       currentAst = null;
+      currentTokens = [];
+      visualizer.clear();
+      elements.emptyState.classList.remove('hidden');
+      resetResults();
+      elements.parserStatus.textContent = 'Error';
+      elements.parserStatus.className = 'status-error';
       showMessage(error.message || 'Unable to parse the program.', 'error');
     }
+  }
+
+  function updateTreeStats() {
+    const maxDepth = visualizer.nodes.reduce((max, node) => Math.max(max, node.depth), 0);
+    elements.nodeCount.textContent = String(visualizer.nodes.length);
+    elements.treeDepth.textContent = String(maxDepth);
+    elements.tokenStat.textContent = String(currentTokens.filter(token => token.type !== 'EOF').length);
+    elements.parserStatus.textContent = 'Valid';
+    elements.parserStatus.className = 'status-ready';
+  }
+
+  function expressionSummary(node) {
+    if (!node) return '—';
+    if (node.type === 'Literal') return JSON.stringify(node.value);
+    if (node.type === 'Identifier') return node.name;
+    if (node.type === 'BinaryExpression') return `${expressionSummary(node.left)} ${node.operator} ${expressionSummary(node.right)}`;
+    if (node.type === 'UnaryExpression') return `${node.operator}${expressionSummary(node.argument)}`;
+    if (node.type === 'GroupingExpression') return `(${expressionSummary(node.expression)})`;
+    if (node.type === 'CallExpression') return `${expressionSummary(node.callee)}(...)`;
+    return node.type;
+  }
+
+  function renderSymbolTable(ast) {
+    const symbols = [];
+    const visit = node => {
+      if (!node || typeof node !== 'object') return;
+      if (node.type === 'VariableDeclaration') {
+        symbols.push({ name: node.name, kind: 'variable', value: expressionSummary(node.initializer) });
+      }
+      Object.values(node).forEach(value => {
+        if (Array.isArray(value)) value.forEach(visit);
+        else if (value && typeof value === 'object') visit(value);
+      });
+    };
+    visit(ast);
+
+    elements.symbolCount.textContent = `${symbols.length} symbol${symbols.length === 1 ? '' : 's'}`;
+    elements.symbolTable.innerHTML = '';
+    if (symbols.length === 0) {
+      elements.symbolTable.className = 'symbol-table placeholder-copy';
+      elements.symbolTable.textContent = 'No variable declarations found.';
+      return;
+    }
+
+    elements.symbolTable.className = 'symbol-table';
+    const header = document.createElement('div');
+    header.className = 'symbol-row header';
+    header.innerHTML = '<span>Name</span><span>Kind</span><span>Initializer</span>';
+    elements.symbolTable.appendChild(header);
+    symbols.forEach(symbol => {
+      const row = document.createElement('div');
+      row.className = 'symbol-row';
+      const name = document.createElement('code');
+      name.textContent = symbol.name;
+      const kind = document.createElement('span');
+      kind.textContent = symbol.kind;
+      const value = document.createElement('code');
+      value.textContent = symbol.value;
+      row.append(name, kind, value);
+      elements.symbolTable.appendChild(row);
+    });
   }
 
   function renderTokens(tokens) {
@@ -158,19 +241,31 @@
   }
 
   function clearAll() {
-    visualizer.stopTraversal();
+    visualizer.clear();
     elements.sourceInput.value = '';
-    elements.edgeLayer.textContent = '';
-    elements.nodeLayer.textContent = '';
     elements.emptyState.classList.remove('hidden');
+    resetResults();
+    currentAst = null;
+    currentTokens = [];
+    traversalStep = 0;
+    stepTraversalType = '';
+    clearMessage();
+  }
+
+  function resetResults() {
     elements.nodeDetails.innerHTML = '<div class="placeholder-copy">Click any syntax-tree node to view its type and properties.</div>';
     elements.tokenList.innerHTML = '<div class="placeholder-copy">Tokens will appear after parsing.</div>';
     elements.tokenCount.textContent = '0 tokens';
+    elements.symbolTable.className = 'symbol-table placeholder-copy';
+    elements.symbolTable.textContent = 'Symbols will appear after parsing.';
+    elements.symbolCount.textContent = '0 symbols';
     elements.astJson.textContent = 'Generate a tree to view JSON.';
     elements.traversalOutput.textContent = 'Traversal order will appear here.';
-    currentAst = null;
-    currentTokens = [];
-    clearMessage();
+    elements.nodeCount.textContent = '0';
+    elements.treeDepth.textContent = '0';
+    elements.tokenStat.textContent = '0';
+    elements.parserStatus.textContent = 'Ready';
+    elements.parserStatus.className = 'status-ready';
   }
 
   function traversalNodeName(node) {
@@ -185,6 +280,8 @@
     }
     clearMessage();
     const type = elements.traversalSelect.value;
+    traversalStep = 0;
+    stepTraversalType = type;
     const delay = Number(elements.speedRange.max) + Number(elements.speedRange.min) - Number(elements.speedRange.value);
     visualizer.animateTraversal(
       type,
@@ -198,6 +295,31 @@
         elements.traversalOutput.textContent = sequence.map(traversalNodeName).join('  →  ');
       }
     );
+  }
+
+  function stepThroughTraversal() {
+    if (!currentAst) {
+      showMessage('Generate a syntax tree before using step traversal.', 'error');
+      return;
+    }
+    clearMessage();
+    visualizer.stopTraversal();
+    const type = elements.traversalSelect.value;
+    if (stepTraversalType !== type) {
+      stepTraversalType = type;
+      traversalStep = 0;
+    }
+    const sequence = visualizer.traversal(type);
+    if (traversalStep >= sequence.length) traversalStep = 0;
+    const node = sequence[traversalStep];
+    visualizer.highlightTraversalNode(node);
+    visualizer.selectNode(node.id);
+    showNodeDetails(node);
+    elements.traversalOutput.textContent = sequence
+      .slice(0, traversalStep + 1)
+      .map(traversalNodeName)
+      .join('  →  ');
+    traversalStep += 1;
   }
 
   function downloadText(filename, content, mimeType) {
@@ -220,6 +342,28 @@
     downloadText('syntax-tree.json', JSON.stringify(currentAst, null, 2), 'application/json');
   }
 
+  async function copyJson() {
+    if (!currentAst) {
+      showMessage('Generate a tree before copying AST JSON.', 'error');
+      return;
+    }
+    const text = JSON.stringify(currentAst, null, 2);
+    try {
+      await navigator.clipboard.writeText(text);
+      showMessage('AST JSON copied to the clipboard.', 'success');
+    } catch (_error) {
+      const helper = document.createElement('textarea');
+      helper.value = text;
+      helper.style.position = 'fixed';
+      helper.style.opacity = '0';
+      document.body.appendChild(helper);
+      helper.select();
+      document.execCommand('copy');
+      helper.remove();
+      showMessage('AST JSON copied to the clipboard.', 'success');
+    }
+  }
+
   function downloadSvg() {
     try {
       const svgText = visualizer.exportSvg();
@@ -240,13 +384,21 @@
   elements.fitBtn.addEventListener('click', () => visualizer.fitToView());
   elements.resetViewBtn.addEventListener('click', () => visualizer.resetView());
   elements.playTraversalBtn.addEventListener('click', playTraversal);
-  elements.stopTraversalBtn.addEventListener('click', () => visualizer.stopTraversal());
+  elements.stepTraversalBtn.addEventListener('click', stepThroughTraversal);
+  elements.stopTraversalBtn.addEventListener('click', () => {
+    visualizer.stopTraversal();
+    traversalStep = 0;
+  });
   elements.downloadJsonBtn.addEventListener('click', downloadJson);
+  elements.copyJsonBtn.addEventListener('click', copyJson);
   elements.downloadSvgBtn.addEventListener('click', downloadSvg);
 
   elements.themeToggle.addEventListener('click', () => {
     document.body.classList.toggle('dark');
-    elements.themeToggle.textContent = document.body.classList.contains('dark') ? '☀' : '◐';
+    const dark = document.body.classList.contains('dark');
+    elements.themeToggle.querySelector('[aria-hidden="true"]').textContent = dark ? '☀' : '◐';
+    elements.themeToggle.setAttribute('aria-label', dark ? 'Switch to light mode' : 'Switch to dark mode');
+    localStorage.setItem('syntax-tree-theme', dark ? 'dark' : 'light');
   });
 
   document.querySelectorAll('.tab').forEach(tab => {
@@ -263,6 +415,12 @@
     }
     if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') parseAndRender();
   });
+
+  if (localStorage.getItem('syntax-tree-theme') === 'dark') {
+    document.body.classList.add('dark');
+    elements.themeToggle.querySelector('[aria-hidden="true"]').textContent = '☀';
+    elements.themeToggle.setAttribute('aria-label', 'Switch to light mode');
+  }
 
   elements.sourceInput.value = samples.expression;
   parseAndRender();

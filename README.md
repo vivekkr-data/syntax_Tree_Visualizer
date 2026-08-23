@@ -1,6 +1,11 @@
 # Syntax Tree Visualizer
 
-A complete browser-based Compiler Design mini-project that tokenizes source code, parses it using a recursive-descent parser, creates an Abstract Syntax Tree (AST), and displays the tree interactively with SVG.
+![HTML](https://img.shields.io/badge/HTML5-Project-e34f26?logo=html5&logoColor=white)
+![CSS](https://img.shields.io/badge/CSS3-Responsive-1572b6?logo=css3&logoColor=white)
+![JavaScript](https://img.shields.io/badge/JavaScript-Vanilla-f7df1e?logo=javascript&logoColor=111)
+![No Dependencies](https://img.shields.io/badge/Dependencies-None-16a34a)
+
+A browser-based Compiler Design lab project that shows the complete journey from source code to tokens and then to an interactive Abstract Syntax Tree (AST). The project uses a handwritten tokenizer, a recursive-descent parser, and an SVG tree renderer. It runs completely in the browser without any framework or external library.
 
 ## Main Features
 
@@ -8,8 +13,12 @@ A complete browser-based Compiler Design mini-project that tokenizes source code
 - Zoom in, zoom out, pan, fit-to-screen, and reset view
 - Clickable node highlighting and property inspection
 - Preorder, postorder, and level-order traversal animation
+- Manual step-by-step traversal for classroom explanation
 - Token stream with token type and line/column location
+- Basic symbol table generated from variable declarations
+- Live node count, token count, tree depth, parser status, and zoom level
 - AST JSON viewer and JSON download
+- One-click AST JSON copy
 - SVG export
 - Light and dark theme
 - Friendly syntax-error reporting
@@ -47,6 +56,15 @@ python -m http.server 8000
 
 Then open `http://localhost:8000` in the browser.
 
+## Quick Demo
+
+1. Choose an example or write a program in the editor.
+2. Click **Generate Syntax Tree** or press **Ctrl + Enter**.
+3. Click any node to inspect its type, value, depth, and children.
+4. Open **Tokens**, **Symbols**, **AST JSON**, or **Grammar** from the right panel.
+5. Select a traversal and use **Play** for animation or **Step** for one node at a time.
+6. Use the toolbar to zoom, fit, or reset the tree, then export it as SVG if required.
+
 ## Project Files
 
 - `index.html` — complete interface
@@ -57,6 +75,30 @@ Then open `http://localhost:8000` in the browser.
 - `app.js` — connects UI, parser, visualizer, tabs, downloads, and examples
 - `PROJECT_REPORT.md` — ready-to-use project documentation
 - `VIVA_QUESTIONS.md` — important viva questions with answers
+
+## Project Architecture
+
+```text
+Source program
+     |
+     v
+Tokenizer (tokenizer.js)
+     |
+     v
+Token stream
+     |
+     v
+Recursive-descent parser (parser.js)
+     |
+     v
+Abstract Syntax Tree
+     |
+     v
+Layout + SVG renderer (visualizer.js)
+     |
+     v
+Interactive tree, traversal and node details
+```
 
 ## Grammar
 
@@ -100,3 +142,7 @@ primary      → NUMBER | STRING | BOOLEAN | ID
 - Support functions and return statements
 - Add syntax-directed translation
 - Compare parse tree and abstract syntax tree
+
+## Academic Note
+
+This project is designed as a learning tool for lexical analysis, syntax analysis, operator precedence, recursive-descent parsing, syntax-tree construction, and tree traversal. It intentionally supports a small educational language instead of attempting to parse complete C, C++, or Java syntax.

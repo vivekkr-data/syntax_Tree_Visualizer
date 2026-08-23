@@ -39,13 +39,20 @@
     }
   }
 
+  function nodeKind(node) {
+    if (['Literal', 'Identifier'].includes(node.type)) return 'value';
+    if (node.type.endsWith('Expression')) return 'expression';
+    return 'statement';
+  }
+
   class TreeVisualizer {
-    constructor(svg, viewportGroup, edgeLayer, nodeLayer, onNodeSelected) {
+    constructor(svg, viewportGroup, edgeLayer, nodeLayer, onNodeSelected, onViewChanged) {
       this.svg = svg;
       this.viewportGroup = viewportGroup;
       this.edgeLayer = edgeLayer;
       this.nodeLayer = nodeLayer;
       this.onNodeSelected = onNodeSelected;
+      this.onViewChanged = onViewChanged;
       this.root = null;
       this.nodes = [];
       this.nodeElements = new Map();
@@ -72,6 +79,17 @@
       this.drawNodes();
       this.resetView();
       requestAnimationFrame(() => this.fitToView());
+    }
+
+    clear() {
+      this.stopTraversal();
+      this.edgeLayer.textContent = '';
+      this.nodeLayer.textContent = '';
+      this.nodeElements.clear();
+      this.selectedId = null;
+      this.root = null;
+      this.nodes = [];
+      this.resetView();
     }
 
     wrapNode(data, parent, depth) {
@@ -132,9 +150,11 @@
       for (const node of this.nodes) {
         const group = document.createElementNS(SVG_NS, 'g');
         group.setAttribute('class', 'node-group');
+        group.setAttribute('data-kind', nodeKind(node.data));
         group.setAttribute('transform', `translate(${node.x}, ${node.y})`);
         group.setAttribute('role', 'button');
         group.setAttribute('aria-label', nodeLabel(node.data).title);
+        group.setAttribute('tabindex', '0');
 
         const rect = document.createElementNS(SVG_NS, 'rect');
         rect.setAttribute('x', -node.width / 2);
@@ -164,6 +184,12 @@
 
         group.addEventListener('click', event => {
           event.stopPropagation();
+          this.selectNode(node.id);
+          if (typeof this.onNodeSelected === 'function') this.onNodeSelected(node);
+        });
+        group.addEventListener('keydown', event => {
+          if (event.key !== 'Enter' && event.key !== ' ') return;
+          event.preventDefault();
           this.selectNode(node.id);
           if (typeof this.onNodeSelected === 'function') this.onNodeSelected(node);
         });
@@ -224,6 +250,7 @@
 
     applyTransform() {
       this.viewportGroup.setAttribute('transform', `translate(${this.translateX} ${this.translateY}) scale(${this.scale})`);
+      if (typeof this.onViewChanged === 'function') this.onViewChanged(this.scale);
     }
 
     zoomAt(screenX, screenY, factor) {
@@ -321,6 +348,13 @@
       this.nodeElements.forEach(element => element.classList.remove('traversing'));
     }
 
+    highlightTraversalNode(node) {
+      this.clearTraversalClass();
+      if (node && this.nodeElements.has(node.id)) {
+        this.nodeElements.get(node.id).classList.add('traversing');
+      }
+    }
+
     exportSvg() {
       if (!this.root) throw new Error('Generate a tree before exporting SVG.');
       const clone = this.svg.cloneNode(true);
@@ -341,5 +375,5 @@
     }
   }
 
-  global.SyntaxTreeView = { TreeVisualizer, nodeLabel };
+  global.SyntaxTreeView = { TreeVisualizer, nodeLabel, nodeKind };
 })(window);

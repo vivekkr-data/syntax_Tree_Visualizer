@@ -20,8 +20,9 @@ Compiler data structures such as syntax trees are difficult to understand only t
 - Display parent-child relationships graphically.
 - Support zoom, pan, fit, and reset operations.
 - Highlight a node and show its properties.
-- Animate preorder, postorder, and level-order traversals.
+- Animate preorder, postorder, and level-order traversals, with a manual step mode.
 - Display helpful errors with line and column numbers.
+- Generate a basic symbol table from variable declarations.
 
 ## 5. Scope
 
@@ -74,6 +75,10 @@ Every syntax-tree node is displayed as an SVG rectangle with text. Curved SVG pa
 
 Implements mouse-wheel zoom, drag-to-pan, fit-to-screen, reset, node selection, traversal playback, and file export.
 
+### 7.8 Symbol Table Module
+
+Walks through the generated AST and collects variable declarations. It displays the identifier name, symbol kind, and initializer expression. This is a small educational extension that connects syntax analysis with the next compiler phase.
+
 ## 8. Functional Requirements
 
 - The user shall enter source code.
@@ -83,6 +88,9 @@ Implements mouse-wheel zoom, drag-to-pan, fit-to-screen, reset, node selection, 
 - The user shall zoom and pan the AST.
 - The user shall click any node to inspect it.
 - The user shall select and animate a traversal.
+- The user shall move through a traversal one node at a time.
+- The system shall display node count, tree depth, token count, and parser status.
+- The system shall show declared identifiers in a basic symbol table.
 - The user shall export AST JSON and SVG.
 
 ## 9. Non-Functional Requirements
@@ -211,7 +219,7 @@ Expected: `WhileStatement` with condition and body.
 
 ## 15. Future Scope
 
-- Add a symbol-table panel.
+- Add nested scopes and type information to the basic symbol-table panel.
 - Add semantic analysis and type checking.
 - Generate intermediate code or three-address code.
 - Highlight the source-code segment corresponding to a selected node.

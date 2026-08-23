@@ -79,3 +79,23 @@ A queue is used.
 ## 20. What is node highlighting used for?
 
 Node highlighting helps the user identify a selected node and understand the order of traversal.
+
+## 21. What is a symbol table?
+
+A symbol table is a compiler data structure that stores information about identifiers, such as their names, types, scopes, and memory locations. This project shows a basic table of declared variables and their initializer expressions.
+
+## 22. Why does multiplication appear below addition in the AST for `4 + 5 * 2`?
+
+Multiplication has higher precedence, so the parser groups `5 * 2` first. The multiplication node becomes the right child of the addition node.
+
+## 23. Why is this project called an AST visualizer instead of a parse-tree visualizer?
+
+The displayed tree keeps meaningful constructs such as declarations, operators, and literals, but removes punctuation and many grammar-only nodes. Therefore, it is an Abstract Syntax Tree.
+
+## 24. What is the difference between Play and Step traversal?
+
+Play highlights every node automatically after a fixed delay. Step highlights one node per button click, which is useful while explaining the traversal in a lab demonstration.
+
+## 25. Why are no external libraries used?
+
+Using plain JavaScript and SVG keeps the project lightweight and makes the tokenizer, parser, layout, and traversal logic easy to explain during viva.

@@ -13,19 +13,31 @@
 </head>
 <body>
   <header class="topbar">
-    <div>
-      <p class="eyebrow">Compiler Design Project</p>
-      <h1>Syntax Tree Visualizer</h1>
-      <p class="subtitle">Write code, generate an Abstract Syntax Tree, inspect tokens, and animate tree traversal.</p>
+    <div class="brand-block">
+      <div class="brand-mark" aria-hidden="true">AST</div>
+      <div>
+        <p class="eyebrow">Compiler Design Lab Project</p>
+        <h1>Syntax Tree Visualizer</h1>
+        <p class="subtitle">See how source code becomes tokens, an Abstract Syntax Tree, and a traversal sequence.</p>
+      </div>
     </div>
-    <button id="themeToggle" class="icon-button" type="button" aria-label="Toggle dark mode" title="Toggle theme">◐</button>
+    <button id="themeToggle" class="icon-button theme-button" type="button" aria-label="Switch to dark mode" title="Toggle theme">
+      <span aria-hidden="true">◐</span><span class="theme-label">Theme</span>
+    </button>
   </header>
+
+  <div class="pipeline" aria-label="Compiler pipeline">
+    <span><b>1</b> Source Code</span><i>→</i>
+    <span><b>2</b> Lexical Analysis</span><i>→</i>
+    <span><b>3</b> Syntax Analysis</span><i>→</i>
+    <span><b>4</b> AST Visualization</span>
+  </div>
 
   <main class="app-shell">
     <section class="editor-panel panel" aria-labelledby="editorTitle">
       <div class="section-heading">
         <div>
-          <h2 id="editorTitle">Source Code</h2>
+          <div class="title-with-icon"><span aria-hidden="true">&lt;/&gt;</span><h2 id="editorTitle">Source Code</h2></div>
           <p>Supported: variables, assignments, expressions, print, if/else, while, and function calls.</p>
         </div>
         <label class="sample-picker">
@@ -39,11 +51,18 @@
         </label>
       </div>
 
-      <label class="sr-only" for="sourceInput">Program source code</label>
-      <textarea id="sourceInput" spellcheck="false" aria-describedby="grammarHelp"></textarea>
+      <div class="editor-frame">
+        <div class="editor-bar">
+          <span class="window-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+          <span>program.txt</span>
+          <kbd>Ctrl + Enter</kbd>
+        </div>
+        <label class="sr-only" for="sourceInput">Program source code</label>
+        <textarea id="sourceInput" spellcheck="false" aria-describedby="grammarHelp"></textarea>
+      </div>
 
       <div class="button-row">
-        <button id="visualizeBtn" class="primary-button" type="button">Generate Syntax Tree</button>
+        <button id="visualizeBtn" class="primary-button" type="button"><span aria-hidden="true">▶</span> Generate Syntax Tree</button>
         <button id="clearBtn" class="secondary-button" type="button">Clear</button>
       </div>
 
@@ -56,15 +75,23 @@
     <section class="workspace-panel panel" aria-labelledby="treeTitle">
       <div class="section-heading tree-heading">
         <div>
-          <h2 id="treeTitle">Abstract Syntax Tree</h2>
+          <div class="title-with-icon"><span aria-hidden="true">⌘</span><h2 id="treeTitle">Abstract Syntax Tree</h2></div>
           <p>Click a node to inspect it. Drag to pan and use the mouse wheel to zoom.</p>
         </div>
         <div class="toolbar" aria-label="Tree controls">
           <button id="zoomOutBtn" class="tool-button" type="button" title="Zoom out">−</button>
           <button id="zoomInBtn" class="tool-button" type="button" title="Zoom in">+</button>
+          <span id="zoomLevel" class="zoom-level" aria-live="polite">100%</span>
           <button id="fitBtn" class="tool-button text-tool" type="button" title="Fit tree">Fit</button>
           <button id="resetViewBtn" class="tool-button text-tool" type="button" title="Reset view">Reset</button>
         </div>
+      </div>
+
+      <div class="tree-stats" aria-label="Tree statistics">
+        <div><span>Nodes</span><strong id="nodeCount">0</strong></div>
+        <div><span>Depth</span><strong id="treeDepth">0</strong></div>
+        <div><span>Tokens</span><strong id="tokenStat">0</strong></div>
+        <div><span>Parser</span><strong id="parserStatus" class="status-ready">Ready</strong></div>
       </div>
 
       <div class="canvas-wrap" id="canvasWrap">
@@ -78,6 +105,11 @@
           <div class="empty-icon">⌘</div>
           <h3>No tree generated</h3>
           <p>Enter code and press “Generate Syntax Tree”.</p>
+        </div>
+        <div class="tree-legend" aria-label="Node color legend">
+          <span><i class="legend-dot statement"></i>Statement</span>
+          <span><i class="legend-dot expression"></i>Expression</span>
+          <span><i class="legend-dot value"></i>Value</span>
         </div>
       </div>
 
@@ -95,6 +127,7 @@
           <input id="speedRange" type="range" min="150" max="1400" value="650" step="50" />
         </label>
         <button id="playTraversalBtn" class="secondary-button compact" type="button">▶ Play</button>
+        <button id="stepTraversalBtn" class="secondary-button compact" type="button">Step</button>
         <button id="stopTraversalBtn" class="secondary-button compact" type="button">■ Stop</button>
       </div>
       <div id="traversalOutput" class="traversal-output" aria-live="polite">Traversal order will appear here.</div>
@@ -104,6 +137,7 @@
       <div class="tabs" role="tablist" aria-label="Compiler information">
         <button class="tab active" type="button" role="tab" aria-selected="true" data-tab="details">Node</button>
         <button class="tab" type="button" role="tab" aria-selected="false" data-tab="tokens">Tokens</button>
+        <button class="tab" type="button" role="tab" aria-selected="false" data-tab="symbols">Symbols</button>
         <button class="tab" type="button" role="tab" aria-selected="false" data-tab="ast">AST JSON</button>
         <button class="tab" type="button" role="tab" aria-selected="false" data-tab="grammar">Grammar</button>
       </div>
@@ -121,10 +155,22 @@
         <div id="tokenList" class="token-list placeholder-copy">Tokens will appear after parsing.</div>
       </div>
 
+      <div id="symbolsTab" class="tab-content" role="tabpanel">
+        <div class="tab-title-row">
+          <h2>Symbol Table</h2>
+          <span id="symbolCount" class="badge">0 symbols</span>
+        </div>
+        <p class="panel-note">Identifiers collected from variable declarations in the current program.</p>
+        <div id="symbolTable" class="symbol-table placeholder-copy">Symbols will appear after parsing.</div>
+      </div>
+
       <div id="astTab" class="tab-content" role="tabpanel">
         <div class="tab-title-row">
           <h2>AST JSON</h2>
-          <button id="downloadJsonBtn" class="link-button" type="button">Download JSON</button>
+          <div class="inline-actions">
+            <button id="copyJsonBtn" class="link-button" type="button">Copy</button>
+            <button id="downloadJsonBtn" class="link-button" type="button">Download</button>
+          </div>
         </div>
         <pre id="astJson" class="code-output">Generate a tree to view JSON.</pre>
       </div>
@@ -160,7 +206,7 @@ primary      → NUMBER | STRING | BOOLEAN | ID
   </main>
 
   <footer>
-    <p>Built as an interactive compiler-design teaching tool using HTML, CSS, JavaScript, tokenization, recursive-descent parsing, and SVG.</p>
+    <p><strong>Syntax Tree Visualizer</strong> · HTML, CSS, JavaScript, recursive-descent parsing and SVG · Works completely in the browser</p>
   </footer>
 </body>
 </html>
