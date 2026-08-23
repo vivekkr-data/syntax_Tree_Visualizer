@@ -26,7 +26,7 @@ Compiler data structures such as syntax trees are difficult to understand only t
 
 ## 5. Scope
 
-The current project supports inferred and typed variable declarations, functions, arrays, indexing, simple pointer expressions, assignments, arithmetic, logical and bitwise expressions, print statements, if/else chains, while/for/do-while loops, return/break/continue statements, literals, function calls, and comments. It focuses on lexical analysis, syntax analysis, and AST visualization. Full language standards, semantic analysis, and machine-code generation are outside the current scope.
+The current project supports inferred, qualified, and typed variable declarations; functions; one-dimensional and multi-dimensional arrays; indexing; simple pointer expressions and dereferenced assignments; arithmetic, logical, bitwise, shift, and conditional expressions; generic calls such as `printf` and `scanf`; if/else chains; while/for/do-while loops; return/break/continue statements; literals; and comments. Common preprocessor lines such as `#include` are ignored before parsing, matching their position before compiler syntax analysis. Full language standards, semantic analysis, and machine-code generation are outside the current scope.
 
 ## 6. Technologies Used
 
@@ -77,7 +77,7 @@ Implements mouse-wheel zoom, drag-to-pan, fit-to-screen, reset, node selection, 
 
 ### 7.8 Symbol Table Module
 
-Walks through the generated AST and collects variable declarations. It displays the identifier name, symbol kind, and initializer expression. This is a small educational extension that connects syntax analysis with the next compiler phase.
+Walks through the generated AST and collects functions, parameters, and variable declarations. It displays each identifier's name, kind, and initializer or parameter count. This educational extension connects syntax analysis with the next compiler phase.
 
 ## 8. Functional Requirements
 
@@ -217,6 +217,16 @@ int sum(int values[5]) {
 
 Expected: function, parameter, declaration, for-loop, assignment, index, update, and return nodes are generated.
 
+### Test 6: Direct C-Style Recursive Program
+
+Input begins with `#include <stdio.h>`, declares a recursive factorial function and `main`, and calls `printf`.
+
+Expected: the preprocessor line is ignored and a valid tree is generated for the remaining program.
+
+### Automated Regression Suite
+
+Run `node tests/parser-tests.js`. The suite performs 38 valid, invalid, AST-structure, source-location, and stress checks. Its final output is `ALL 38 TESTS PASSED`.
+
 ## 13. Advantages
 
 - Provides visual understanding of compiler concepts.
@@ -231,15 +241,15 @@ Expected: function, parameter, declaration, for-loop, assignment, index, update,
 - It implements a strong educational C-like subset rather than every rule of full C, C++, or Java.
 - It does not perform type checking.
 - It does not execute the program.
-- Very large trees may become visually dense.
+- Very large trees initially appear as a fitted overview and can be inspected with zoom and pan.
 
 ## 15. Future Scope
 
-- Add nested scopes and type information to the basic symbol-table panel.
+- Add nested scopes and semantic type information to the symbol-table panel.
 - Add semantic analysis and type checking.
 - Generate intermediate code or three-address code.
 - Highlight the source-code segment corresponding to a selected node.
-- Support functions, arrays, and return statements.
+- Add `switch/case`, structures, and more complete C declarators.
 - Add an interpreter and step-by-step execution.
 - Compare concrete parse trees with abstract syntax trees.
 

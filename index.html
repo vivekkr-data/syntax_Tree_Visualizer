@@ -5,11 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="Interactive syntax tree visualizer for learning compiler design." />
   <title>Syntax Tree Visualizer</title>
-  <link rel="stylesheet" href="style.css?v=20260823-5" />
-  <script defer src="tokenizer.js?v=20260823-5"></script>
-  <script defer src="parser.js?v=20260823-5"></script>
-  <script defer src="visualizer.js?v=20260823-5"></script>
-  <script defer src="app.js?v=20260823-5"></script>
+  <link rel="stylesheet" href="style.css?v=20260823-6" />
+  <script defer src="tokenizer.js?v=20260823-6"></script>
+  <script defer src="parser.js?v=20260823-6"></script>
+  <script defer src="visualizer.js?v=20260823-6"></script>
+  <script defer src="app.js?v=20260823-6"></script>
 </head>
 <body>
   <header class="topbar">
@@ -53,7 +53,7 @@
       <div class="section-heading">
         <div>
           <div class="title-with-icon"><span aria-hidden="true">&lt;/&gt;</span><h2 id="editorTitle">Source Code</h2></div>
-          <p>Supported: typed variables, functions, arrays, conditions, loops, calls, returns, and advanced expressions.</p>
+          <p>Paste an educational C-like program or write one directly, then generate its tokens and AST.</p>
         </div>
         <label class="sample-picker">
           Example
@@ -83,7 +83,7 @@
       </div>
 
       <p id="grammarHelp" class="helper-text">
-        Tip: End normal statements with a semicolon. Example: <code>let result = 4 + 5 * 2;</code>
+        Tip: C-style <code>#include</code> lines are ignored before parsing. End normal statements with a semicolon.
       </p>
       <div id="messageBox" class="message hidden" role="alert" aria-live="polite"></div>
     </section>
@@ -214,14 +214,20 @@ block        → "{" statement* "}"
 declaration  → (let | var | const | type) declarator ("," declarator)* ";"
 function     → ("function" | type) ID "(" parameters? ")" block
 expression   → assignment | conditional
-assignment   → expression ("=" | "+=" | "-=" | "*=" | "/=") expression
+assignment   → conditional assignment-operator assignment | conditional
+assignment-operator → "=" | "+=" | "-=" | "*=" | "/=" | "%="
+                    | "&=" | "|=" | "^=" | "<<=" | ">>="
 logical-or   → logical-and ("||" logical-and)*
-logical-and  → equality ("&&" equality)*
+logical-and  → bitwise-or ("&&" bitwise-or)*
+bitwise-or   → bitwise-xor ("|" bitwise-xor)*
+bitwise-xor  → bitwise-and ("^" bitwise-and)*
+bitwise-and  → equality ("&" equality)*
 equality     → comparison (("==" | "!=") comparison)*
-comparison   → term (("<" | "<=" | ">" | ">=") term)*
+comparison   → shift (("<" | "<=" | ">" | ">=") shift)*
+shift        → term (("<<" | ">>") term)*
 term         → factor (("+" | "-") factor)*
 factor       → unary (("*" | "/" | "%") unary)*
-unary        → ("!" | "-" | "+" | "~" | "++" | "--") unary | postfix
+unary        → ("!" | "-" | "+" | "~" | "&" | "*" | "++" | "--") unary | postfix
 postfix      → primary (call | index | "++" | "--")*
 primary      → literal | ID | array | "(" expression ")"</pre>
       </div>

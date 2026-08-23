@@ -6,7 +6,7 @@
     variables: `let length = 12;\nlet width = 8;\nlet area = length * width;\nprint(area);`,
     condition: `let marks = 78;\nif (marks >= 40) {\n  print("Pass");\n} else {\n  print("Fail");\n}`,
     loop: `let count = 0;\nwhile (count < 3) {\n  print(count);\n  count = count + 1;\n}`,
-    advanced: `int factorial(int n) {\n  if (n <= 1) {\n    return 1;\n  }\n  return n * factorial(n - 1);\n}\n\nint main(void) {\n  int values[5] = {1, 2, 3, 4, 5};\n  int total = 0;\n\n  for (int i = 0; i < 5; i++) {\n    if (values[i] % 2 == 0) {\n      continue;\n    }\n    total += factorial(values[i]);\n  }\n\n  print(total);\n  return 0;\n}`
+    advanced: `#include <stdio.h>\n\nint factorial(int n) {\n  if (n <= 1) {\n    return 1;\n  }\n  return n * factorial(n - 1);\n}\n\nint main(void) {\n  int values[5] = {1, 2, 3, 4, 5};\n  int total = 0;\n\n  for (int i = 0; i < 5; i++) {\n    if (values[i] % 2 == 0) {\n      continue;\n    }\n    total += factorial(values[i]);\n  }\n\n  printf("%d", total);\n  return 0;\n}`
   };
 
   const elements = {
@@ -125,6 +125,7 @@
       ? `${node.operator}${expressionSummary(node.argument)}`
       : `${expressionSummary(node.argument)}${node.operator}`;
     if (node.type === 'ConditionalExpression') return `${expressionSummary(node.test)} ? … : …`;
+    if (node.type === 'SequenceExpression') return node.expressions.map(expressionSummary).join(', ');
     return node.type;
   }
 
@@ -140,7 +141,7 @@
         });
       }
       if (node.type === 'VariableDeclaration') {
-        const array = node.arraySize ? '[]' : '';
+        const array = '[]'.repeat(node.dimensions?.length || (node.arraySize ? 1 : 0));
         symbols.push({
           name: node.name,
           kind: `${node.dataType || node.kind || 'variable'}${array}`,
@@ -150,7 +151,7 @@
       if (node.type === 'Parameter') {
         symbols.push({
           name: node.name,
-          kind: `parameter · ${node.dataType || 'any'}${node.arraySize ? '[]' : ''}`,
+          kind: `parameter · ${node.dataType || 'any'}${'[]'.repeat(node.dimensions?.length || (node.arraySize ? 1 : 0))}`,
           value: '—'
         });
       }

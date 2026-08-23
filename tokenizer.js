@@ -13,13 +13,15 @@
 
   const KEYWORDS = new Set([
     'let', 'var', 'const', 'int', 'float', 'double', 'char', 'string', 'bool', 'void',
+    'short', 'long', 'signed', 'unsigned',
     'function', 'print', 'if', 'else', 'while', 'for', 'do', 'return', 'break',
     'continue', 'true', 'false'
   ]);
   const TWO_CHAR_OPERATORS = new Set([
     '==', '!=', '<=', '>=', '&&', '||', '++', '--', '+=', '-=', '*=', '/=', '%=',
-    '<<', '>>'
+    '<<', '>>', '&=', '|=', '^='
   ]);
+  const THREE_CHAR_OPERATORS = new Set(['<<=', '>>=']);
   const ONE_CHAR_OPERATORS = new Set(['+', '-', '*', '/', '%', '=', '!', '<', '>', '&', '|', '^', '~', '?']);
   const PUNCTUATION = new Set(['(', ')', '{', '}', '[', ']', ';', ',', ':']);
 
@@ -56,6 +58,13 @@
 
       if (/\s/.test(char)) return;
 
+      // Preprocessor directives are handled before parsing in a real C compiler.
+      // Ignoring the complete line lets common C examples start with #include.
+      if (char === '#') {
+        while (this.peek() !== '\n' && !this.isAtEnd()) this.advance();
+        return;
+      }
+
       if (char === '/' && this.peek() === '/') {
         while (this.peek() !== '\n' && !this.isAtEnd()) this.advance();
         return;
@@ -79,6 +88,14 @@
 
       if (char === '"' || char === "'") {
         this.string(char, startLine, startColumn);
+        return;
+      }
+
+      const triple = char + this.peek() + this.peekNext();
+      if (THREE_CHAR_OPERATORS.has(triple)) {
+        this.advance();
+        this.advance();
+        this.tokens.push(this.makeToken(TokenType.OPERATOR, triple, triple, startLine, startColumn));
         return;
       }
 

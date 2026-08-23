@@ -1,11 +1,14 @@
 (function (global) {
   'use strict';
 
-  const DECLARATION_KEYWORDS = new Set([
-    'let', 'var', 'const', 'int', 'float', 'double', 'char', 'string', 'bool'
+  const DECLARATION_KEYWORDS = new Set(['let', 'var', 'const']);
+  const TYPE_KEYWORDS = new Set([
+    'int', 'float', 'double', 'char', 'string', 'bool', 'void',
+    'short', 'long', 'signed', 'unsigned'
   ]);
-  const TYPE_KEYWORDS = new Set(['int', 'float', 'double', 'char', 'string', 'bool', 'void']);
-  const ASSIGNMENT_OPERATORS = new Set(['=', '+=', '-=', '*=', '/=', '%=']);
+  const ASSIGNMENT_OPERATORS = new Set([
+    '=', '+=', '-=', '*=', '/=', '%=', '&=', '|=', '^=', '<<=', '>>='
+  ]);
 
   class ParserError extends Error {
     constructor(message, token) {
@@ -32,13 +35,21 @@
       if (this.matchLexeme('function')) return this.functionDeclaration(null);
 
       if (this.isTypedFunctionStart()) {
-        const returnType = this.advance().lexeme;
-        return this.functionDeclaration(returnType);
+        const returnType = this.typeName();
+        let returnPointerDepth = 0;
+        while (this.matchLexeme('*')) returnPointerDepth += 1;
+        return this.functionDeclaration(returnType, returnPointerDepth);
       }
 
       if (this.checkDeclarationKeyword()) {
         const kind = this.advance().lexeme;
-        return this.variableDeclaration(kind, true);
+        const dataType = TYPE_KEYWORDS.has(this.peek().lexeme) ? this.typeName() : null;
+        return this.variableDeclaration(kind, true, dataType);
+      }
+
+      if (TYPE_KEYWORDS.has(this.peek().lexeme) && this.peek().lexeme !== 'void') {
+        const dataType = this.typeName();
+        return this.variableDeclaration(dataType, true, dataType);
       }
 
       if (this.matchLexeme('print')) return this.printStatement();
@@ -54,35 +65,48 @@
     }
 
     isTypedFunctionStart() {
-      return TYPE_KEYWORDS.has(this.peek().lexeme)
-        && this.peekAt(1).type === 'IDENTIFIER'
-        && this.peekAt(2).lexeme === '(';
+      let offset = 0;
+      while (TYPE_KEYWORDS.has(this.peekAt(offset).lexeme)) offset += 1;
+      if (offset === 0) return false;
+      while (this.peekAt(offset).lexeme === '*') offset += 1;
+      return this.peekAt(offset).type === 'IDENTIFIER' && this.peekAt(offset + 1).lexeme === '(';
     }
 
     checkDeclarationKeyword() {
       return DECLARATION_KEYWORDS.has(this.peek().lexeme);
     }
 
-    variableDeclaration(kind, consumeSemicolon) {
+    typeName() {
+      const parts = [];
+      while (TYPE_KEYWORDS.has(this.peek().lexeme)) parts.push(this.advance().lexeme);
+      if (parts.length === 0) throw new ParserError('Expected a data type', this.peek());
+      return parts.join(' ');
+    }
+
+    variableDeclaration(kind, consumeSemicolon, explicitDataType = null) {
       const declarations = [];
       do {
         let pointerDepth = 0;
         while (this.matchLexeme('*')) pointerDepth += 1;
         const name = this.consumeType('IDENTIFIER', `Expected a variable name after ${kind}`);
-        let arraySize = null;
-        if (this.matchLexeme('[')) {
-          if (!this.checkLexeme(']')) arraySize = this.expression();
+        const dimensions = [];
+        while (this.matchLexeme('[')) {
+          let size = null;
+          if (!this.checkLexeme(']')) size = this.expression();
           this.consumeLexeme(']', "Expected ']' after array size");
+          dimensions.push(size);
         }
+        const arraySize = dimensions[0] || null;
         let initializer = null;
         if (this.matchLexeme('=')) initializer = this.expression();
         declarations.push({
           type: 'VariableDeclaration',
           kind,
-          dataType: TYPE_KEYWORDS.has(kind) ? kind : null,
+          dataType: explicitDataType,
           name: name.lexeme,
           pointerDepth,
           arraySize,
+          dimensions,
           initializer
         });
       } while (this.matchLexeme(','));
@@ -92,7 +116,7 @@
       return { type: 'VariableDeclarationList', kind, declarations };
     }
 
-    functionDeclaration(returnType) {
+    functionDeclaration(returnType, returnPointerDepth = 0) {
       const name = this.consumeType('IDENTIFIER', 'Expected a function name');
       this.consumeLexeme('(', "Expected '(' after function name");
       const parameters = [];
@@ -102,16 +126,19 @@
       } else if (!this.checkLexeme(')')) {
         do {
           let dataType = null;
-          if (TYPE_KEYWORDS.has(this.peek().lexeme)) dataType = this.advance().lexeme;
+          if (TYPE_KEYWORDS.has(this.peek().lexeme)) dataType = this.typeName();
           let pointerDepth = 0;
           while (this.matchLexeme('*')) pointerDepth += 1;
           const parameter = this.consumeType('IDENTIFIER', 'Expected a parameter name');
-          let arraySize = null;
-          if (this.matchLexeme('[')) {
-            if (!this.checkLexeme(']')) arraySize = this.expression();
+          const dimensions = [];
+          while (this.matchLexeme('[')) {
+            let size = null;
+            if (!this.checkLexeme(']')) size = this.expression();
             this.consumeLexeme(']', "Expected ']' after parameter array size");
+            dimensions.push(size);
           }
-          parameters.push({ type: 'Parameter', name: parameter.lexeme, dataType, pointerDepth, arraySize });
+          const arraySize = dimensions[0] || null;
+          parameters.push({ type: 'Parameter', name: parameter.lexeme, dataType, pointerDepth, arraySize, dimensions });
         } while (this.matchLexeme(','));
       }
 
@@ -121,6 +148,7 @@
         type: 'FunctionDeclaration',
         name: name.lexeme,
         returnType: returnType || 'inferred',
+        returnPointerDepth,
         parameters,
         body
       };
@@ -161,9 +189,13 @@
         initializer = null;
       } else if (this.checkDeclarationKeyword()) {
         const kind = this.advance().lexeme;
-        initializer = this.variableDeclaration(kind, true);
+        const dataType = TYPE_KEYWORDS.has(this.peek().lexeme) ? this.typeName() : null;
+        initializer = this.variableDeclaration(kind, true, dataType);
+      } else if (TYPE_KEYWORDS.has(this.peek().lexeme) && this.peek().lexeme !== 'void') {
+        const dataType = this.typeName();
+        initializer = this.variableDeclaration(dataType, true, dataType);
       } else {
-        initializer = this.expression();
+        initializer = this.forExpressionList();
         this.consumeLexeme(';', "Expected ';' after for-loop initializer");
       }
 
@@ -172,10 +204,16 @@
       this.consumeLexeme(';', "Expected ';' after for-loop condition");
 
       let update = null;
-      if (!this.checkLexeme(')')) update = this.expression();
+      if (!this.checkLexeme(')')) update = this.forExpressionList();
       this.consumeLexeme(')', "Expected ')' after for-loop clauses");
       const body = this.statement();
       return { type: 'ForStatement', initializer, condition, update, body };
+    }
+
+    forExpressionList() {
+      const expressions = [this.expression()];
+      while (this.matchLexeme(',')) expressions.push(this.expression());
+      return expressions.length === 1 ? expressions[0] : { type: 'SequenceExpression', expressions };
     }
 
     doWhileStatement() {
@@ -221,7 +259,7 @@
       const left = this.conditional();
       if (ASSIGNMENT_OPERATORS.has(this.peek().lexeme)) {
         const operator = this.advance().lexeme;
-        if (!['Identifier', 'IndexExpression'].includes(left.type)) {
+        if (!this.isAssignable(left)) {
           throw new ParserError('Invalid assignment target', this.previous());
         }
         const right = this.assignment();
@@ -265,7 +303,7 @@
       if (this.matchLexeme('++', '--')) {
         const operator = this.previous().lexeme;
         const argument = this.unary();
-        if (!['Identifier', 'IndexExpression'].includes(argument.type)) {
+        if (!this.isAssignable(argument)) {
           throw new ParserError('Invalid update target', this.previous());
         }
         return { type: 'UpdateExpression', operator, argument, prefix: true };
@@ -287,7 +325,7 @@
           this.consumeLexeme(']', "Expected ']' after array index");
           expression = { type: 'IndexExpression', object: expression, index };
         } else if (this.matchLexeme('++', '--')) {
-          if (!['Identifier', 'IndexExpression'].includes(expression.type)) {
+          if (!this.isAssignable(expression)) {
             throw new ParserError('Invalid update target', this.previous());
           }
           expression = { type: 'UpdateExpression', operator: this.previous().lexeme, argument: expression, prefix: false };
@@ -338,6 +376,13 @@
       }
       this.consumeLexeme(')', "Expected ')' after function arguments");
       return { type: 'CallExpression', callee, arguments: args };
+    }
+
+    isAssignable(node) {
+      if (!node) return false;
+      if (node.type === 'Identifier' || node.type === 'IndexExpression') return true;
+      if (node.type === 'UnaryExpression' && node.operator === '*') return true;
+      return node.type === 'GroupingExpression' && this.isAssignable(node.expression);
     }
 
     matchLexeme(...lexemes) {

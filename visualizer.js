@@ -7,10 +7,10 @@
     if (!node || typeof node !== 'object') return [];
     switch (node.type) {
       case 'Program': return node.body;
-      case 'VariableDeclaration': return [node.arraySize, node.initializer].filter(Boolean);
+      case 'VariableDeclaration': return [...(node.dimensions || [node.arraySize]).filter(Boolean), node.initializer].filter(Boolean);
       case 'VariableDeclarationList': return node.declarations;
       case 'FunctionDeclaration': return [...node.parameters, node.body];
-      case 'Parameter': return node.arraySize ? [node.arraySize] : [];
+      case 'Parameter': return (node.dimensions || [node.arraySize]).filter(Boolean);
       case 'AssignmentStatement': return [node.value];
       case 'AssignmentExpression': return [node.left, node.right];
       case 'PrintStatement': return [node.expression];
@@ -25,6 +25,7 @@
       case 'UnaryExpression': return [node.argument];
       case 'UpdateExpression': return [node.argument];
       case 'ConditionalExpression': return [node.test, node.consequent, node.alternate];
+      case 'SequenceExpression': return node.expressions;
       case 'GroupingExpression': return [node.expression];
       case 'CallExpression': return [node.callee, ...node.arguments];
       case 'ArrayExpression': return node.elements;
@@ -38,18 +39,19 @@
       case 'VariableDeclaration': {
         const prefix = node.dataType || node.kind || '';
         const pointer = '*'.repeat(node.pointerDepth || 0);
-        const array = node.arraySize ? '[]' : '';
+        const array = '[]'.repeat(node.dimensions?.length || (node.arraySize ? 1 : 0));
         return { title: 'VariableDeclaration', value: `${prefix} ${pointer}${node.name}${array}`.trim() };
       }
       case 'VariableDeclarationList': return { title: 'DeclarationList', value: `${node.declarations.length} variables` };
-      case 'FunctionDeclaration': return { title: 'FunctionDeclaration', value: `${node.name}() → ${node.returnType}` };
-      case 'Parameter': return { title: 'Parameter', value: `${node.dataType || 'any'} ${'*'.repeat(node.pointerDepth || 0)}${node.name}${node.arraySize ? '[]' : ''}` };
+      case 'FunctionDeclaration': return { title: 'FunctionDeclaration', value: `${'*'.repeat(node.returnPointerDepth || 0)}${node.name}() → ${node.returnType}` };
+      case 'Parameter': return { title: 'Parameter', value: `${node.dataType || 'any'} ${'*'.repeat(node.pointerDepth || 0)}${node.name}${'[]'.repeat(node.dimensions?.length || (node.arraySize ? 1 : 0))}` };
       case 'AssignmentStatement': return { title: 'Assignment', value: node.name };
       case 'AssignmentExpression': return { title: 'Assignment', value: node.operator };
       case 'BinaryExpression': return { title: 'BinaryExpression', value: node.operator };
       case 'UnaryExpression': return { title: 'UnaryExpression', value: node.operator };
       case 'UpdateExpression': return { title: 'UpdateExpression', value: `${node.prefix ? 'prefix ' : 'postfix '}${node.operator}` };
       case 'ConditionalExpression': return { title: 'ConditionalExpression', value: '?:' };
+      case 'SequenceExpression': return { title: 'SequenceExpression', value: `${node.expressions.length} expressions` };
       case 'Literal': return { title: 'Literal', value: JSON.stringify(node.value) };
       case 'Identifier': return { title: 'Identifier', value: node.name };
       case 'CallExpression': return { title: 'CallExpression', value: `${node.arguments.length} arg(s)` };
@@ -92,7 +94,16 @@
       this.dragging = false;
       this.lastPointer = null;
       this.animationToken = 0;
+      this.resizeTimer = null;
       this.setupInteractions();
+      if (typeof ResizeObserver === 'function') {
+        this.resizeObserver = new ResizeObserver(() => {
+          if (!this.root) return;
+          clearTimeout(this.resizeTimer);
+          this.resizeTimer = setTimeout(() => this.fitToView(), 100);
+        });
+        this.resizeObserver.observe(this.svg);
+      }
     }
 
     render(ast) {
@@ -284,7 +295,7 @@
     }
 
     zoomAt(screenX, screenY, factor) {
-      const nextScale = Math.min(3.2, Math.max(0.04, this.scale * factor));
+      const nextScale = Math.min(3.2, Math.max(0.005, this.scale * factor));
       const worldX = (screenX - this.translateX) / this.scale;
       const worldY = (screenY - this.translateY) / this.scale;
       this.translateX = screenX - worldX * nextScale;
@@ -320,7 +331,7 @@
       const contentWidth = Math.max(1, maxX - minX);
       const contentHeight = Math.max(1, maxY - minY);
       const padding = 70;
-      this.scale = Math.min(1.15, Math.max(0.04, Math.min((svgRect.width - padding) / contentWidth, (svgRect.height - padding) / contentHeight)));
+      this.scale = Math.min(1.15, Math.max(0.005, Math.min((svgRect.width - padding) / contentWidth, (svgRect.height - padding) / contentHeight)));
       this.translateX = (svgRect.width - contentWidth * this.scale) / 2 - minX * this.scale;
       this.translateY = (svgRect.height - contentHeight * this.scale) / 2 - minY * this.scale;
       this.applyTransform();
@@ -392,6 +403,18 @@
       clone.setAttribute('width', '1600');
       clone.setAttribute('height', '1000');
       clone.setAttribute('viewBox', '0 0 1600 1000');
+      const minX = Math.min(...this.nodes.map(node => node.x - node.width / 2));
+      const maxX = Math.max(...this.nodes.map(node => node.x + node.width / 2));
+      const minY = Math.min(...this.nodes.map(node => node.y - node.height / 2));
+      const maxY = Math.max(...this.nodes.map(node => node.y + node.height / 2));
+      const contentWidth = Math.max(1, maxX - minX);
+      const contentHeight = Math.max(1, maxY - minY);
+      const padding = 100;
+      const exportScale = Math.min((1600 - padding) / contentWidth, (1000 - padding) / contentHeight);
+      const exportX = (1600 - contentWidth * exportScale) / 2 - minX * exportScale;
+      const exportY = (1000 - contentHeight * exportScale) / 2 - minY * exportScale;
+      clone.querySelector('#viewportGroup')?.setAttribute('transform', `translate(${exportX} ${exportY}) scale(${exportScale})`);
+      clone.querySelectorAll('.selected, .traversing').forEach(node => node.classList.remove('selected', 'traversing'));
       const style = document.createElementNS(SVG_NS, 'style');
       style.textContent = `
         .edge{fill:none;stroke:#94a3b8;stroke-width:2}

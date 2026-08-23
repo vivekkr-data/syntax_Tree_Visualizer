@@ -82,7 +82,7 @@ Node highlighting helps the user identify a selected node and understand the ord
 
 ## 21. What is a symbol table?
 
-A symbol table is a compiler data structure that stores information about identifiers, such as their names, types, scopes, and memory locations. This project shows a basic table of declared variables and their initializer expressions.
+A symbol table is a compiler data structure that stores information about identifiers, such as their names, types, scopes, and memory locations. This project shows a basic table of functions, parameters, variables, and initializer expressions.
 
 ## 22. Why does multiplication appear below addition in the AST for `4 + 5 * 2`?
 
@@ -114,8 +114,20 @@ The assignment grammar recognizes `=`, `+=`, `-=`, `*=`, `/=`, and `%=`. Assignm
 
 ## 29. Does the project parse complete C or Java?
 
-No. It parses a documented educational C-like subset. A production C or Java compiler requires a much larger grammar, preprocessing, semantic analysis, and type checking.
+No. It parses a documented educational C-like subset. Common `#include` lines can be pasted and are ignored before parsing, but macro expansion and complete preprocessing are not implemented. A production C or Java compiler requires a much larger grammar, semantic analysis, and type checking.
 
 ## 30. Which advanced programs can be demonstrated?
 
-Recursive functions, typed functions, nested conditions, for/while/do-while loops, arrays, compound assignments, ternary expressions, bitwise operations, and nested function calls can be demonstrated.
+Recursive functions, typed functions, nested conditions, for/while/do-while loops, one-dimensional and two-dimensional arrays, pointers, compound assignments, ternary expressions, bitwise operations, and nested function calls can be demonstrated.
+
+## 31. Can a program be typed directly instead of selecting an example?
+
+Yes. The user can type or paste supported C-like code into the editor and click Generate Syntax Tree or press Ctrl + Enter. The examples only provide convenient demonstrations; they are not hard-coded output.
+
+## 32. Why are `#include` lines ignored?
+
+Preprocessing happens before lexical and syntax analysis in the normal C compilation pipeline. The project safely skips complete preprocessor lines and visualizes the remaining program.
+
+## 33. How are very large trees displayed?
+
+The visualizer computes the complete tree bounds and automatically fits them inside the SVG canvas. The user can then zoom in and pan to inspect individual nodes.
