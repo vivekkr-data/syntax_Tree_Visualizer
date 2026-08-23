@@ -129,6 +129,13 @@
     const symbols = [];
     const visit = node => {
       if (!node || typeof node !== 'object') return;
+      if (node.type === 'FunctionDeclaration') {
+        symbols.push({
+          name: node.name,
+          kind: `function · ${node.returnType}`,
+          value: `${node.parameters.length} parameter${node.parameters.length === 1 ? '' : 's'}`
+        });
+      }
       if (node.type === 'VariableDeclaration') {
         const array = node.arraySize ? '[]' : '';
         symbols.push({
