@@ -85,7 +85,10 @@
       elements.traversalOutput.textContent = 'Traversal order will appear here.';
       traversalStep = 0;
       stepTraversalType = '';
-      showMessage(`Tree generated successfully: ${visualizer.nodes.length} nodes.`, 'success');
+      const overviewTip = visualizer.nodes.length > 45
+        ? ' Large tree fitted as an overview—use + or the mouse wheel to inspect nodes.'
+        : '';
+      showMessage(`Tree generated successfully: ${visualizer.nodes.length} nodes.${overviewTip}`, 'success');
     } catch (error) {
       currentAst = null;
       currentTokens = [];

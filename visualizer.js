@@ -284,7 +284,7 @@
     }
 
     zoomAt(screenX, screenY, factor) {
-      const nextScale = Math.min(3.2, Math.max(0.16, this.scale * factor));
+      const nextScale = Math.min(3.2, Math.max(0.04, this.scale * factor));
       const worldX = (screenX - this.translateX) / this.scale;
       const worldY = (screenY - this.translateY) / this.scale;
       this.translateX = screenX - worldX * nextScale;
@@ -320,7 +320,7 @@
       const contentWidth = Math.max(1, maxX - minX);
       const contentHeight = Math.max(1, maxY - minY);
       const padding = 70;
-      this.scale = Math.min(1.15, Math.max(0.16, Math.min((svgRect.width - padding) / contentWidth, (svgRect.height - padding) / contentHeight)));
+      this.scale = Math.min(1.15, Math.max(0.04, Math.min((svgRect.width - padding) / contentWidth, (svgRect.height - padding) / contentHeight)));
       this.translateX = (svgRect.width - contentWidth * this.scale) / 2 - minX * this.scale;
       this.translateY = (svgRect.height - contentHeight * this.scale) / 2 - minY * this.scale;
       this.applyTransform();
