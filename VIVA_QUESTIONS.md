@@ -70,7 +70,7 @@ Later compiler phases such as semantic analysis, optimization, intermediate-code
 
 ## 18. How can the project be extended?
 
-It can be extended with a symbol table, type checking, intermediate-code generation, source-to-node mapping, and an interpreter.
+The workbench already adds a scoped symbol table, basic semantic checks, scalar intermediate code, constant folding and control-flow graphs. Future extensions include fuller type checking, array/pointer memory lowering, source-to-node mapping and an interpreter.
 
 ## 19. Which data structure is used for level-order traversal?
 
@@ -122,7 +122,7 @@ Recursive functions, typed functions, nested conditions, for/while/do-while loop
 
 ## 31. Can a program be typed directly instead of selecting an example?
 
-Yes. The user can type or paste supported C-like code into the editor and click Generate Syntax Tree or press Ctrl + Enter. The examples only provide convenient demonstrations; they are not hard-coded output.
+Yes. The user can type or paste supported C-like code into the editor and click Analyze Program or press Ctrl + Enter. The examples only provide convenient demonstrations; they are not hard-coded output.
 
 ## 32. Why are `#include` lines ignored?
 
@@ -131,3 +131,31 @@ Preprocessing happens before lexical and syntax analysis in the normal C compila
 ## 33. How are very large trees displayed?
 
 The visualizer computes the complete tree bounds and automatically fits them inside the SVG canvas. The user can then zoom in and pan to inspect individual nodes.
+
+## 34. What extends this project beyond an AST learning tool?
+
+The Compiler Workbench connects the AST to scoped name analysis, scalar TAC, quadruples, literal constant folding and a basic-block control-flow graph. Each stage exposes its actual generated data.
+
+## 35. Why does an IR name contain @?
+
+`value@0` and `value@1` identify different declarations in different lexical scopes. This prevents shadowed source names from referring to the same IR storage location.
+
+## 36. How are short-circuit operators lowered?
+
+The generator uses conditional jumps and labels. For `false && expression`, control skips the right operand, so its side effects are not generated on the executed path.
+
+## 37. How does constant folding preserve behavior?
+
+It folds only supported literal-only safe-integer expressions. It does not discard calls, updates or variable reads. Division and overflow-sensitive operations are left unchanged; both original and optimized IR are checked in regression fixtures.
+
+## 38. What defines a basic block?
+
+A basic block is a maximal straight-line sequence with entry at its beginning and transfer of control at its end. Entry instructions, labels and instructions after a control transfer start blocks in this implementation.
+
+## 39. Is an unreachable CFG block always dead code?
+
+The tool reports structural reachability from each function entry and the global entry. It does not evaluate branch conditions or infer whether a function is called, so its result is conservative.
+
+## 40. Does this implement a full C compiler?
+
+No. The grammar is educational and the scalar IR has documented teaching-language rules. Arrays and pointers can still be visualized as ASTs but are not lowered to TAC. Complete C type checking, memory layout, machine code and app-side program execution are not implemented.

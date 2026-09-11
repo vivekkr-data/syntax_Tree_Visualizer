@@ -3,12 +3,27 @@
 ![HTML](https://img.shields.io/badge/HTML5-Project-e34f26?logo=html5&logoColor=white)
 ![CSS](https://img.shields.io/badge/CSS3-Responsive-1572b6?logo=css3&logoColor=white)
 ![JavaScript](https://img.shields.io/badge/JavaScript-Vanilla-f7df1e?logo=javascript&logoColor=111)
-![Tests](https://img.shields.io/badge/Automated_Tests-38_Passed-16a34a)
+![Tests](https://img.shields.io/badge/Automated_Tests-90_Passed-16a34a)
 ![Dependencies](https://img.shields.io/badge/Dependencies-None-16a34a)
 
-An interactive Compiler Design lab project that converts an educational C-like source program into tokens and an Abstract Syntax Tree (AST). The complete compiler front-end pipeline—tokenization, recursive-descent parsing, AST creation, tree layout, and visualization—is implemented in plain JavaScript.
+An interactive Compiler Design lab project that converts an educational C-like source program into tokens and an Abstract Syntax Tree (AST). The extended workbench adds scoped semantic checks, scalar three-address code (TAC), quadruples, constant folding and a control-flow graph. All stages use plain JavaScript.
 
-**Live project:** [https://syntax-tree-visualizer-fwpv.onrender.com/](https://syntax-tree-visualizer-fwpv.onrender.com/)
+**Existing Render deployment:** [https://syntax-tree-visualizer-fwpv.onrender.com/](https://syntax-tree-visualizer-fwpv.onrender.com/)
+
+The extension is documented in [EXTENSION_GUIDE.md](EXTENSION_GUIDE.md), including the supported IR subset and a short demonstration sequence. The Render link above reflects whichever GitHub revision that deployment currently serves.
+
+## Added compiler stages
+
+| Stage | Working feature |
+| --- | --- |
+| Semantic analysis | Undeclared and duplicate names, lexical scopes, constant writes, call arity, return and loop-control placement, basic string-to-numeric initializer check |
+| Symbol table | Declaration kind, type annotation, scope and unique IR name |
+| Intermediate code | Scalar expressions, function calls, conditionals and loops; TAC and quadruples |
+| Optimization | Literal-only safe-integer constant folding with before/after instructions and rule log |
+| Control flow | Basic blocks, labeled edges, separate function entries and structurally unreachable blocks |
+| Export | Analysis JSON with source, diagnostics, symbols, TAC, optimization and CFG |
+
+These stages are visible in **Compiler Workbench**, below the existing AST workspace. Editing the source clears previous analysis so exports cannot silently contain stale results.
 
 ## 1. Problem Statement
 
@@ -28,14 +43,18 @@ Display syntax trees graphically with these required features:
 5. The layout engine assigns a position to every AST node.
 6. The SVG renderer draws nodes and parent-child edges.
 7. The interface displays tokens, symbols, AST JSON, statistics, and traversals.
+8. Semantic analysis builds lexical scopes and diagnostics.
+9. Supported scalar programs produce TAC, optimized TAC and a control-flow graph.
 
 ```mermaid
-flowchart LR
-    A[Source Code] --> B[Tokenizer]
-    B --> C[Token Stream]
-    C --> D[Recursive-Descent Parser]
-    D --> E[Abstract Syntax Tree]
-    E --> F[Interactive SVG]
+flowchart TD
+    A[Source Code] --> B[Tokenizer and Parser]
+    B --> C[AST]
+    C --> D[Interactive SVG]
+    C --> E[Semantic Checks]
+    E --> F[Scalar TAC]
+    F --> G[Constant Folding]
+    F --> H[Control Flow]
 ```
 
 ## 3. Quick Faculty Demo
@@ -44,7 +63,7 @@ Use this sequence during the lab evaluation:
 
 1. Open the live project.
 2. Select **Advanced Program** from the Example menu.
-3. Click **Generate Syntax Tree**.
+3. Click **Analyze Program**.
 4. Point out the **Nodes**, **Depth**, **Tokens**, and **Parser: Valid** statistics.
 5. Click a tree node and explain its type, label, depth, and children.
 6. Open the **Tokens** tab to show lexical analysis.
@@ -58,7 +77,7 @@ The Advanced Program demonstrates preprocessing input, recursion, typed function
 
 ## 4. Writing a Program Directly
 
-Yes—the user can remove the example, type or paste a supported program, and click **Generate Syntax Tree**. **Ctrl + Enter** is the keyboard shortcut.
+Yes—the user can remove the example, type or paste a supported program, and click **Analyze Program**. **Ctrl + Enter** is the keyboard shortcut.
 
 Example:
 
@@ -169,9 +188,10 @@ Node.js is only required for running the tests; it is not required to use the we
 
 ```bash
 node tests/parser-tests.js
+node tests/compiler-tests.js
 ```
 
-The permanent test suite currently contains **38 checks** covering:
+The parser suite contains **38 checks**; the compiler suite adds **52 checks**. The latter includes a test-only IR evaluator to verify loops, short-circuit evaluation, recursion, argument order, and matching original/optimized results. The website does not execute source programs. Parser checks cover:
 
 - Valid expressions, declarations, functions, arrays, pointers, conditions, and loops
 - A directly pasted C-style recursive factorial program
@@ -184,6 +204,7 @@ Expected final line:
 
 ```text
 ALL 38 TESTS PASSED
+ALL 52 COMPILER TESTS PASSED
 ```
 
 ## 10. Project Files
@@ -196,6 +217,10 @@ ALL 38 TESTS PASSED
 | `parser.js` | Recursive-descent parser and AST construction |
 | `visualizer.js` | Tree layout, SVG rendering, zoom, pan, traversal, and export |
 | `app.js` | UI events, examples, symbols, tokens, downloads, and statistics |
+| `compiler.js` | Semantic analysis, TAC generation, constant folding and CFG construction |
+| `compiler-ui.js` | Compiler stage panels, diagnostics, graph and analysis export |
+| `tests/compiler-tests.js` | Compiler regression tests and test-only TAC evaluator |
+| `EXTENSION_GUIDE.md` | Extension scope, architecture and demonstration |
 | `tests/parser-tests.js` | Automated valid, invalid, structural, and stress tests |
 | `PROJECT_REPORT.md` | Detailed academic project report |
 | `VIVA_QUESTIONS.md` | Important viva questions with short answers |
@@ -263,16 +288,16 @@ The following are outside the current scope:
 - `switch/case`, `goto`, and labels
 - Function prototypes without bodies
 - Complete C/C++ declarator rules
-- Semantic type checking and scope validation
-- Intermediate code and machine-code generation
+- Complete C type checking, definite assignment and all-path return analysis
+- Array/pointer memory lowering and machine-code generation
 
 Keeping the grammar focused makes every implemented compiler stage visible and explainable during a lab viva.
 
 ## 15. Future Enhancements
 
-- Add nested scopes and semantic type checking
+- Expand type compatibility and definite-assignment checks
 - Add `switch/case` and structures
-- Generate three-address code
+- Extend TAC to arrays and pointer memory operations
 - Highlight the source range belonging to a selected node
 - Compare a concrete parse tree with the AST
 - Add an interpreter for step-by-step execution

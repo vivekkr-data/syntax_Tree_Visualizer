@@ -5,11 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="Interactive syntax tree visualizer for learning compiler design." />
   <title>Syntax Tree Visualizer</title>
-  <link rel="stylesheet" href="style.css?v=20260823-7" />
-  <script defer src="tokenizer.js?v=20260823-7"></script>
-  <script defer src="parser.js?v=20260823-7"></script>
-  <script defer src="visualizer.js?v=20260823-7"></script>
-  <script defer src="app.js?v=20260823-7"></script>
+  <link rel="stylesheet" href="style.css?v=20260911-1" />
+  <script defer src="tokenizer.js?v=20260911-1"></script>
+  <script defer src="parser.js?v=20260911-1"></script>
+  <script defer src="visualizer.js?v=20260911-1"></script>
+  <script defer src="compiler.js?v=20260911-1"></script>
+  <script defer src="compiler-ui.js?v=20260911-1"></script>
+  <script defer src="app.js?v=20260911-1"></script>
 </head>
 <body>
   <header class="topbar">
@@ -18,7 +20,7 @@
       <div>
         <p class="eyebrow">Compiler Design Lab Project</p>
         <h1>Syntax Tree Visualizer</h1>
-        <p class="subtitle">See how source code becomes tokens, an Abstract Syntax Tree, and a traversal sequence.</p>
+        <p class="subtitle">Explore source code, syntax trees, semantic checks and intermediate code.</p>
         <div class="project-badges" aria-label="Project highlights">
           <span>Recursive-Descent Parser</span>
           <span>Interactive SVG</span>
@@ -36,14 +38,15 @@
 
   <section class="pipeline" aria-label="Compiler pipeline">
     <div class="pipeline-heading">
-      <span>Compiler Front-End Flow</span>
-      <small>Every stage is implemented in JavaScript</small>
+      <span>Compiler Workbench</span>
+      <small>Inspect each stage below</small>
     </div>
     <div class="pipeline-track">
       <span><b>1</b><em>Source Code</em></span><i>→</i>
       <span><b>2</b><em>Lexical Analysis</em></span><i>→</i>
       <span><b>3</b><em>Syntax Analysis</em></span><i>→</i>
-      <span><b>4</b><em>AST Visualization</em></span>
+      <span><b>4</b><em>Semantic Checks</em></span><i>→</i>
+      <span><b>5</b><em>TAC & Optimization</em></span>
     </div>
   </section>
 
@@ -62,6 +65,11 @@
             <option value="variables">Variables</option>
             <option value="condition">If / Else</option>
             <option value="loop">While Loop</option>
+            <option value="optimization">Constant Folding</option>
+            <option value="flow">Control Flow</option>
+            <option value="scopes">Nested Scopes</option>
+            <option value="functions">Function Calls</option>
+            <option value="errors">Semantic Errors</option>
             <option value="advanced">Advanced Program</option>
           </select>
         </label>
@@ -78,7 +86,7 @@
       </div>
 
       <div class="button-row">
-        <button id="visualizeBtn" class="primary-button" type="button"><span aria-hidden="true">▶</span> Generate Syntax Tree</button>
+        <button id="visualizeBtn" class="primary-button" type="button"><span aria-hidden="true">▶</span> Analyze Program</button>
         <button id="clearBtn" class="secondary-button" type="button">Clear</button>
       </div>
 
@@ -121,7 +129,7 @@
         <div id="emptyState" class="empty-state">
           <div class="empty-icon">⌘</div>
           <h3>No tree generated</h3>
-          <p>Enter code and press “Generate Syntax Tree”.</p>
+          <p>Enter code and press “Analyze Program”.</p>
         </div>
         <div class="tree-legend" aria-label="Node color legend">
           <span><i class="legend-dot statement"></i>Statement</span>
@@ -237,6 +245,40 @@ primary      → literal | ID | array | "(" expression ")"</pre>
       </div>
     </aside>
   </main>
+
+  <section class="compiler-lab panel" aria-labelledby="compilerTitle">
+    <div class="section-heading">
+      <div><div class="panel-label">04 · Beyond the syntax tree</div><h2 id="compilerTitle">Compiler Workbench</h2>
+      <p>Follow declarations through scopes, intermediate instructions and basic blocks.</p></div>
+      <button id="downloadReportBtn" type="button" class="secondary-button" disabled>Export Analysis JSON</button>
+    </div>
+    <p id="compilerSummary" class="compiler-summary" role="status" aria-live="polite">Analyze a program to inspect compiler stages.</p>
+    <div class="lab-tabs" role="tablist" aria-label="Compiler stages">
+      <button id="semanticsButton" class="lab-tab active" type="button" role="tab" aria-selected="true" aria-controls="semanticsPanel" data-stage="semantics">Semantic Checks</button>
+      <button id="irButton" class="lab-tab" type="button" role="tab" aria-selected="false" aria-controls="irPanel" data-stage="ir" tabindex="-1">Three-Address Code</button>
+      <button id="optimizationButton" class="lab-tab" type="button" role="tab" aria-selected="false" aria-controls="optimizationPanel" data-stage="optimization" tabindex="-1">Optimization</button>
+      <button id="cfgButton" class="lab-tab" type="button" role="tab" aria-selected="false" aria-controls="cfgPanel" data-stage="cfg" tabindex="-1">Control-Flow Graph</button>
+    </div>
+    <div id="semanticsPanel" class="lab-panel" role="tabpanel" aria-labelledby="semanticsButton">
+      <div class="lab-columns"><div><h3>Diagnostics</h3><div id="diagnostics"></div>
+      <p class="panel-note">Checks names, lexical scopes, constant writes, call arity and control-statement placement. Full C type rules and definite assignment are not implemented.</p></div>
+      <div><h3>Scoped Symbol Table</h3><div id="scopedSymbols" class="table-scroll"></div></div></div>
+    </div>
+    <div id="irPanel" class="lab-panel" role="tabpanel" aria-labelledby="irButton" hidden>
+      <p class="panel-note">Scalar teaching IR; no machine code or execution. Names such as x@1 identify a declaration's scope. Arguments evaluate left to right. Arrays and pointers stay available in AST mode.</p>
+      <div class="lab-columns"><div><h3>Instructions</h3><pre id="tacOutput" class="code-output"></pre></div><div><h3>Quadruples</h3><div id="quadruples" class="table-scroll"></div></div></div>
+    </div>
+    <div id="optimizationPanel" class="lab-panel" role="tabpanel" aria-labelledby="optimizationButton" hidden>
+      <p class="panel-note">Folds literal-only safe-integer +, −, × and comparisons. Division, overflow-sensitive operations, variables and side effects are preserved. This is not a machine-specific C optimizer.</p>
+      <div id="optimizationSummary" class="compiler-summary"></div>
+      <div class="lab-columns"><div><h3>Before</h3><pre id="beforeCode" class="code-output"></pre></div><div><h3>After</h3><pre id="afterCode" class="code-output"></pre></div></div>
+      <h3>Applied Rules</h3><div id="optimizationRules" class="table-scroll"></div>
+    </div>
+    <div id="cfgPanel" class="lab-panel" role="tabpanel" aria-labelledby="cfgButton" hidden>
+      <p class="panel-note">Basic blocks from unoptimized TAC. Arrows show jumps and fall-through; functions have separate entries. Calls stay within instructions. Dashed blocks are structurally unreachable, without evaluating conditions.</p>
+      <div id="cfgGraph" class="cfg-graph"></div><h3>Block Connections</h3><div id="cfgEdges" class="table-scroll"></div>
+    </div>
+  </section>
 
   <footer>
     <p><strong>Syntax Tree Visualizer</strong> · Built for Compiler Design Lab using HTML, CSS, JavaScript, recursive-descent parsing and SVG</p>

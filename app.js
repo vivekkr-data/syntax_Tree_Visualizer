@@ -2,6 +2,11 @@
   'use strict';
 
   const samples = {
+    optimization: `int result = (4 + 5) * (12 - 2);\nprint(result);`,
+    flow: `int total = 0;\nfor (int i = 0; i < 6; i++) {\n  if (i == 2) continue;\n  total += i;\n}\nprint(total);`,
+    scopes: `int value = 10;\n{\n  int value = 20;\n  print(value);\n}\nprint(value);`,
+    errors: `const int limit = 5;\nlimit = 9;\nint limit = 3;\nprint(missing);\nbreak;`,
+    functions: `int square(int n) {\n  return n * n;\n}\nint result = square(7);\nprint(result);`,
     expression: `let result = 4 + 5 * 2;\nprint(result);`,
     variables: `let length = 12;\nlet width = 8;\nlet area = length * width;\nprint(area);`,
     condition: `let marks = 78;\nif (marks >= 40) {\n  print("Pass");\n} else {\n  print("Fail");\n}`,
@@ -63,8 +68,9 @@
 
   function parseAndRender() {
     clearMessage();
-    const source = elements.sourceInput.value.trim();
-    if (!source) {
+    const source = elements.sourceInput.value;
+    if (!source.trim()) {
+      clearAll();
       showMessage('Please enter some source code first.', 'error');
       return;
     }
@@ -80,6 +86,7 @@
       renderTokens(currentTokens.filter(token => token.type !== 'EOF'));
       elements.astJson.textContent = JSON.stringify(currentAst, null, 2);
       renderSymbolTable(currentAst);
+      document.dispatchEvent(new CustomEvent('compiler:parsed', { detail: { ast: currentAst, source } }));
       updateTreeStats();
       elements.nodeDetails.innerHTML = '<div class="placeholder-copy">Tree generated. Click a node to inspect its properties.</div>';
       elements.traversalOutput.textContent = 'Traversal order will appear here.';
@@ -284,6 +291,7 @@
   }
 
   function resetResults() {
+    document.dispatchEvent(new CustomEvent('compiler:reset'));
     elements.nodeDetails.innerHTML = '<div class="placeholder-copy">Click any syntax-tree node to view its type and properties.</div>';
     elements.tokenList.innerHTML = '<div class="placeholder-copy">Tokens will appear after parsing.</div>';
     elements.tokenCount.textContent = '0 tokens';
@@ -436,6 +444,20 @@
     tab.addEventListener('click', () => activateTab(tab.dataset.tab));
   });
 
+  function invalidateAnalysis() {
+    if (currentAst) {
+      visualizer.clear();
+      currentAst = null;
+      currentTokens = [];
+      resetResults();
+      elements.emptyState.classList.remove('hidden');
+    }
+    clearMessage();
+    elements.parserStatus.textContent = 'Edited';
+    document.dispatchEvent(new CustomEvent('compiler:stale'));
+  }
+  elements.sourceInput.addEventListener('input', invalidateAnalysis);
+
   elements.sourceInput.addEventListener('keydown', event => {
     if (event.key === 'Tab') {
       event.preventDefault();
@@ -443,6 +465,7 @@
       const end = elements.sourceInput.selectionEnd;
       elements.sourceInput.value = elements.sourceInput.value.slice(0, start) + '  ' + elements.sourceInput.value.slice(end);
       elements.sourceInput.selectionStart = elements.sourceInput.selectionEnd = start + 2;
+      invalidateAnalysis();
     }
     if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') parseAndRender();
   });

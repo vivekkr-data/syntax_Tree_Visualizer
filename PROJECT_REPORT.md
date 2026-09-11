@@ -6,7 +6,7 @@
 
 ## 2. Abstract
 
-The Syntax Tree Visualizer is a browser-based educational project that demonstrates the front-end stages of a compiler. It accepts a small programming-language input, performs lexical analysis, parses the token stream using a recursive-descent parser, constructs an Abstract Syntax Tree (AST), and displays the tree graphically. The user can zoom, pan, inspect nodes, and animate common tree traversals. The tool helps students understand tokens, grammar, operator precedence, parsing, and AST construction through direct interaction.
+The Syntax Tree Visualizer is a browser-based educational project that demonstrates the front-end stages of a compiler. It accepts a small programming-language input, performs lexical analysis, parses the token stream using a recursive-descent parser, constructs an Abstract Syntax Tree (AST), and displays the tree graphically. The user can zoom, pan, inspect nodes, and animate common tree traversals. The extended workbench also performs scoped semantic checks, generates scalar three-address code and quadruples, folds supported constant expressions, and displays a basic-block control-flow graph. It links front-end structures to intermediate representations without executing the submitted program.
 
 ## 3. Problem Statement
 
@@ -22,11 +22,13 @@ Compiler data structures such as syntax trees are difficult to understand only t
 - Highlight a node and show its properties.
 - Animate preorder, postorder, and level-order traversals, with a manual step mode.
 - Display helpful errors with line and column numbers.
-- Generate a basic symbol table from variable declarations.
+- Build lexical scopes and check name resolution, duplicate declarations, constant writes and control contexts.
+- Generate scalar three-address code and quadruples.
+- Show safe-integer literal constant folding and basic-block control flow.
 
 ## 5. Scope
 
-The current project supports inferred, qualified, and typed variable declarations; functions; one-dimensional and multi-dimensional arrays; indexing; simple pointer expressions and dereferenced assignments; arithmetic, logical, bitwise, shift, and conditional expressions; generic calls such as `printf` and `scanf`; if/else chains; while/for/do-while loops; return/break/continue statements; literals; and comments. Common preprocessor lines such as `#include` are ignored before parsing, matching their position before compiler syntax analysis. Full language standards, semantic analysis, and machine-code generation are outside the current scope.
+The current project supports inferred, qualified, and typed variable declarations; functions; one-dimensional and multi-dimensional arrays; indexing; simple pointer expressions and dereferenced assignments; arithmetic, logical, bitwise, shift, and conditional expressions; generic calls such as `printf` and `scanf`; if/else chains; while/for/do-while loops; return/break/continue statements; literals; and comments. Common preprocessor lines such as `#include` are ignored before parsing, matching their position before compiler syntax analysis. The extension adds scoped semantic checks, scalar TAC, quadruples, literal constant folding and CFG construction. Complete language standards, memory lowering for arrays/pointers, and machine-code generation remain outside the scope. See EXTENSION_GUIDE.md for exact pass boundaries.
 
 ## 6. Technologies Used
 
@@ -225,7 +227,7 @@ Expected: the preprocessor line is ignored and a valid tree is generated for the
 
 ### Automated Regression Suite
 
-Run `node tests/parser-tests.js`. The suite performs 38 valid, invalid, AST-structure, source-location, and stress checks. Its final output is `ALL 38 TESTS PASSED`.
+Run `node tests/parser-tests.js` and `node tests/compiler-tests.js`. The suites contain 38 parser checks and 52 compiler checks (90 total). The compiler suite checks both unoptimized and optimized IR with a test-only evaluator, including recursion, loop control and short-circuit side effects. Browser interaction testing is separate from these checks.
 
 ## 13. Advantages
 
@@ -239,15 +241,15 @@ Run `node tests/parser-tests.js`. The suite performs 38 valid, invalid, AST-stru
 ## 14. Limitations
 
 - It implements a strong educational C-like subset rather than every rule of full C, C++, or Java.
-- It does not perform type checking.
+- Type checking is limited to a string-literal/numeric-initializer mismatch check; complete type compatibility, definite assignment and all-path return analysis are not implemented.
+- TAC supports scalar input. Arrays and pointers retain AST support with an explicit IR limitation message.
 - It does not execute the program.
 - Very large trees initially appear as a fitted overview and can be inspected with zoom and pan.
 
 ## 15. Future Scope
 
-- Add nested scopes and semantic type information to the symbol-table panel.
-- Add semantic analysis and type checking.
-- Generate intermediate code or three-address code.
+- Expand semantic checks to full type compatibility and definite assignment.
+- Add memory operations to TAC for arrays and pointers.
 - Highlight the source-code segment corresponding to a selected node.
 - Add `switch/case`, structures, and more complete C declarators.
 - Add an interpreter and step-by-step execution.
