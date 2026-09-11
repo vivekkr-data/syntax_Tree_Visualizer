@@ -32,6 +32,13 @@
     }
 
     statement() {
+      const start = this.peek();
+      const node = this.parseStatement();
+      node.loc = node.loc || { line: start.line, column: start.column };
+      return node;
+    }
+
+    parseStatement() {
       if (this.matchLexeme('function')) return this.functionDeclaration(null);
 
       if (this.isTypedFunctionStart()) {
@@ -104,6 +111,7 @@
           kind,
           dataType: explicitDataType,
           name: name.lexeme,
+          loc: { line: name.line, column: name.column },
           pointerDepth,
           arraySize,
           dimensions,
@@ -138,7 +146,7 @@
             dimensions.push(size);
           }
           const arraySize = dimensions[0] || null;
-          parameters.push({ type: 'Parameter', name: parameter.lexeme, dataType, pointerDepth, arraySize, dimensions });
+          parameters.push({ type: 'Parameter', name: parameter.lexeme, dataType, pointerDepth, arraySize, dimensions, loc: { line: parameter.line, column: parameter.column } });
         } while (this.matchLexeme(','));
       }
 
@@ -147,6 +155,7 @@
       return {
         type: 'FunctionDeclaration',
         name: name.lexeme,
+        loc: { line: name.line, column: name.column },
         returnType: returnType || 'inferred',
         returnPointerDepth,
         parameters,
@@ -340,7 +349,7 @@
       if (this.matchType('NUMBER', 'STRING')) return { type: 'Literal', value: this.previous().literal };
       if (this.matchLexeme('true')) return { type: 'Literal', value: true };
       if (this.matchLexeme('false')) return { type: 'Literal', value: false };
-      if (this.matchType('IDENTIFIER')) return { type: 'Identifier', name: this.previous().lexeme };
+      if (this.matchType('IDENTIFIER')) return { type: 'Identifier', name: this.previous().lexeme, loc: { line: this.previous().line, column: this.previous().column } };
 
       if (this.matchLexeme('[')) {
         const elements = [];

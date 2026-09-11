@@ -403,3 +403,53 @@ footer { padding: 0.15rem 1.25rem 1.5rem; text-align: center; color: var(--muted
   .tree-legend { flex-wrap: wrap; max-width: calc(100% - 24px); }
   .tabs { grid-template-columns: repeat(3, 1fr); }
 }
+
+/* Later compiler stages use a full-width work area so code stays readable. */
+.compiler-lab { margin: 1.5rem auto; width: calc(100% - 3rem); max-width: 1880px; padding: 1.5rem; }
+.compiler-lab .section-heading { flex-wrap: wrap; gap: 1rem; }
+.compiler-lab h2 { margin: .4rem 0; }
+.compiler-lab h3 { font-size: 1rem; margin: 1rem 0; }
+.compiler-lab p, .compiler-lab td { font-size: 1rem; }
+.compiler-summary { border: 1px solid var(--border); background: var(--panel-soft); padding: 1rem; border-radius: 8px; line-height: 1.6; }
+.lab-tabs { display: flex; flex-wrap: wrap; gap: .5rem; padding: .5rem 0 1rem; border-bottom: 1px solid var(--border); }
+.lab-tab { padding: .8rem 1rem; background: var(--panel-soft); color: var(--text); border: 1px solid var(--border); border-radius: 8px; font: inherit; font-size: .875rem; cursor: pointer; }
+.lab-tab.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+body.dark .lab-tab.active { color: #101a2d; }
+.lab-tab:focus-visible, .compiler-lab button:focus-visible { outline: 3px solid var(--highlight); outline-offset: 3px; }
+.lab-panel[hidden] { display: none; }
+.lab-columns { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1.5rem; }
+.lab-columns > div { min-width: 0; }
+.table-scroll { overflow: auto; max-height: 32rem; }
+.compiler-table { width: 100%; border-collapse: collapse; text-align: left; }
+.compiler-table th, .compiler-table td { padding: .75rem; border-bottom: 1px solid var(--border); overflow-wrap: anywhere; }
+.compiler-table th { font-size: .875rem; background: var(--panel-soft); position: sticky; top: 0; }
+.compiler-table td { font-family: ui-monospace, monospace; }
+.compiler-lab .code-output { font-size: .875rem; line-height: 1.7; max-height: 32rem; overflow: auto; }
+.diagnostic { padding: 1rem; margin-bottom: .75rem; border-radius: 8px; border: 1px solid var(--border); }
+.diagnostic p { margin: .5rem 0; }
+.diagnostic-error { background: var(--danger-soft); border-left: 4px solid var(--danger); }
+.diagnostic-info { background: var(--panel-soft); border-left: 4px solid var(--primary); }
+.compiler-lab button:disabled { opacity: .55; cursor: not-allowed; }
+.cfg-graph { overflow: auto; max-height: 40rem; border: 1px solid var(--border); border-radius: 8px; padding: 1rem; background: var(--panel-soft); }
+.cfg-graph > svg { display: block; max-width: none; color: var(--muted); }
+.cfg-block rect { fill: var(--panel); stroke: var(--primary); stroke-width: 1.5; }
+.cfg-block.unreachable rect { stroke-dasharray: 6 4; stroke: var(--muted); }
+.cfg-block-title { fill: var(--primary-dark); font: 600 16px system-ui, sans-serif; }
+.cfg-instruction { fill: var(--text); font: 14px ui-monospace, monospace; }
+.cfg-edge-label { fill: var(--muted); font: 14px system-ui, sans-serif; }
+.cfg-graph summary { cursor: pointer; padding: 1rem 0; color: var(--text); }
+.pipeline-track { flex-wrap: wrap; }
+@media (max-width: 900px) { .lab-columns { grid-template-columns: minmax(0, 1fr); } .compiler-lab { width: calc(100% - 1.5rem); padding: 1rem; } }
+
+.workbench-nav { display: flex; gap: .75rem; flex-wrap: wrap; margin: 1rem 1.5rem; }
+.workbench-nav a { font-size: .875rem; color: var(--primary-dark); background: var(--panel); padding: .65rem 1rem; border: 1px solid var(--border); border-radius: 8px; text-decoration: none; }
+.workbench-nav a:focus-visible { outline: 3px solid var(--highlight); outline-offset: 2px; }
+#compilerLab, #grammarLab { scroll-margin-top: 1rem; }
+.backend-controls, .trace-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; margin-top: 1rem; }
+.backend-controls label { display: flex; gap: .75rem; align-items: center; font-size: .875rem; }
+.grammar-editor, .grammar-token-input { display: block; width: 100%; border: 1px solid var(--border); border-radius: 8px; color: var(--text); background: var(--panel-soft); font: 1rem/1.7 ui-monospace, monospace; padding: 1rem; margin-top: .5rem; }
+.grammar-editor { min-height: 220px; resize: vertical; tab-size: 2; }
+.grammar-editor:focus, .grammar-token-input:focus { outline: 2px solid var(--primary); outline-offset: 2px; }
+#grammarLab .compiler-table td { white-space: nowrap; }
+#grammarWarnings p { font-size: .875rem; }
+.trace-heading .inline-actions { flex-wrap: wrap; }
