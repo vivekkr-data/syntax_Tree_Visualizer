@@ -159,3 +159,31 @@ The tool reports structural reachability from each function entry and the global
 ## 40. Does this implement a full C compiler?
 
 No. The grammar is educational and the scalar IR has documented teaching-language rules. Arrays and pointers can still be visualized as ASTs but are not lowered to TAC. Complete C type checking, memory layout, machine code and app-side program execution are not implemented.
+
+## 41. How are FIRST and FOLLOW computed?
+
+The Grammar Lab repeatedly propagates set elements until no set changes. FIRST accounts for nullable prefixes. FOLLOW propagates FIRST of the remaining suffix, excluding epsilon, and the parent's FOLLOW when that suffix is nullable.
+
+## 42. How is the LL(1) table constructed?
+
+For A → α, place the production under terminals in FIRST(α). If α is nullable, also place it under FOLLOW(A). More than one production in a cell is a conflict, which the tool displays instead of guessing a rule.
+
+## 43. Does a table conflict prove ambiguity?
+
+No. It proves that this grammar is not directly usable by the implemented deterministic LL(1) parser. It may need left factoring or another grammar/parser strategy; ambiguity requires a separate argument.
+
+## 44. What is liveness?
+
+A variable is live at a point when its current value may be used on a future path before being redefined. The backend iterates IN/OUT equations over the CFG. Calls and exits conservatively use globals.
+
+## 45. How does next-use allocation work here?
+
+Each block is scanned backward to record next uses. During target generation, the allocator keeps cached values in registers. Under pressure it chooses an unprotected register whose value has the farthest next use, storing a dirty value before eviction.
+
+## 46. Why are registers flushed at block boundaries and calls?
+
+Blocks are allocated independently, so successor blocks reload from agreed symbolic memory locations. Calls may alter globals and clobber registers, so dirty values are saved and the register cache is invalidated.
+
+## 47. What target architecture is implemented?
+
+A custom symbolic register machine with 3, 4 or 6 registers, named memory slots, operations and control transfers. It is not native machine code or LLVM. The app generates and displays this representation; only automated test harnesses execute its fixtures.

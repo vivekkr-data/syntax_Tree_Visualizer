@@ -2,7 +2,8 @@
   'use strict';
   const byId = id => document.getElementById(id);
   let result = null, source = '';
-  const fields = ['diagnostics', 'scopedSymbols', 'tacOutput', 'quadruples', 'beforeCode', 'afterCode', 'optimizationSummary', 'optimizationRules', 'cfgGraph', 'cfgEdges'];
+  const backendFields = ['backendSummary', 'targetCode', 'allocationTrace', 'livenessTable', 'nextUseTable'];
+  const fields = [...backendFields, 'diagnostics', 'scopedSymbols', 'tacOutput', 'quadruples', 'beforeCode', 'afterCode', 'optimizationSummary', 'optimizationRules', 'cfgGraph', 'cfgEdges'];
   function table(id, headers, rows) {
     const target = byId(id); target.replaceChildren();
     if (!rows.length) { target.textContent = 'No entries for this program.'; return; }
@@ -86,7 +87,7 @@
     byId('compilerSummary').textContent = errors.length ? `${errors.length} semantic error(s). AST inspection is available; intermediate code is blocked.` : result.ir ? `Semantic checks passed · ${result.symbols.length} symbols · ${result.ir.code.length} TAC instructions · ${result.cfg.blocks.length} basic blocks` : 'AST and semantic checks complete. This program uses features outside the scalar TAC subset.';
     byId('downloadReportBtn').disabled = false;
     if (!result.ir) {
-      ['tacOutput', 'quadruples', 'beforeCode', 'afterCode', 'optimizationSummary', 'optimizationRules', 'cfgGraph', 'cfgEdges'].forEach(id => { byId(id).textContent = errors.length ? 'Resolve semantic errors to generate intermediate code.' : 'Unavailable for this input. See Semantic Checks for the supported subset.'; });
+      [...backendFields, 'tacOutput', 'quadruples', 'beforeCode', 'afterCode', 'optimizationSummary', 'optimizationRules', 'cfgGraph', 'cfgEdges'].forEach(id => { byId(id).textContent = errors.length ? 'Resolve semantic errors to generate intermediate code.' : 'Unavailable for this input. See Semantic Checks for the supported subset.'; });
       return;
     }
     byId('tacOutput').textContent = listing(result.ir.code);
@@ -95,7 +96,27 @@
     byId('optimizationSummary').textContent = `${result.optimized.changes.length} expression(s) folded · ${result.ir.code.length} → ${result.optimized.code.length} instructions`;
     table('optimizationRules', ['Rule', 'Before', 'After'], result.optimized.changes.map(c => [c.rule, c.before, c.after]));
     graph(result.cfg);
+    renderBackend();
   }
+  function renderBackend() {
+    if (!result || !result.ir) return;
+    try {
+      const mode = byId('backendSource').value;
+      const backend = SyntaxBackend.generate(result[mode].code, Number(byId('registerCount').value));
+      result.backend = { input: mode, ...backend };
+      byId('backendSummary').textContent = `${backend.registerCount} registers · ${backend.stats.instructions} target instructions · ${backend.stats.loads} loads · ${backend.stats.stores} stores · ${backend.stats.evictions} register evictions · liveness converged in ${backend.flow.iterations} passes`;
+      byId('targetCode').textContent = backend.instructions.map((q,i) => `${String(i+1).padStart(3)}  ${SyntaxBackend.format(q)}`).join('\n');
+      table('allocationTrace', ['TAC #', 'Allocation / Event'], backend.allocation.map(row => [row.tac, row.event]));
+      const set = values => `{ ${values.join(', ')} }`;
+      table('livenessTable', ['Block', 'USE', 'DEF', 'IN', 'OUT'], backend.flow.blocks.map(b => [b.id, set(b.use), set(b.def), set(b.liveIn), set(b.liveOut)]));
+      table('nextUseTable', ['TAC #', 'Block', 'Live names → next use'], backend.flow.nextUse.map(row => [row.index + 1, row.block, Object.entries(row.after).map(([name, next]) => `${name} → ${next}`).join(', ') || '∅']));
+    } catch (error) {
+      result.backend = null;
+      backendFields.forEach(id => { byId(id).textContent = error.message; });
+    }
+  }
+  byId('backendSource').addEventListener('change', renderBackend);
+  byId('registerCount').addEventListener('change', renderBackend);
   function reset(message) {
     result = null; byId('downloadReportBtn').disabled = true;
     fields.forEach(id => { byId(id).textContent = 'Analyze a program to view this stage.'; });

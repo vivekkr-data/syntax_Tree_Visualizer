@@ -5,13 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="Interactive syntax tree visualizer for learning compiler design." />
   <title>Syntax Tree Visualizer</title>
-  <link rel="stylesheet" href="style.css?v=20260911-1" />
-  <script defer src="tokenizer.js?v=20260911-1"></script>
-  <script defer src="parser.js?v=20260911-1"></script>
-  <script defer src="visualizer.js?v=20260911-1"></script>
-  <script defer src="compiler.js?v=20260911-1"></script>
-  <script defer src="compiler-ui.js?v=20260911-1"></script>
-  <script defer src="app.js?v=20260911-1"></script>
+  <link rel="stylesheet" href="style.css?v=20260911-2" />
+  <script defer src="tokenizer.js?v=20260911-2"></script>
+  <script defer src="parser.js?v=20260911-2"></script>
+  <script defer src="visualizer.js?v=20260911-2"></script>
+  <script defer src="compiler.js?v=20260911-2"></script>
+  <script defer src="backend.js?v=20260911-2"></script>
+  <script defer src="grammar.js?v=20260911-2"></script>
+  <script defer src="grammar-ui.js?v=20260911-2"></script>
+  <script defer src="compiler-ui.js?v=20260911-2"></script>
+  <script defer src="app.js?v=20260911-2"></script>
 </head>
 <body>
   <header class="topbar">
@@ -20,7 +23,7 @@
       <div>
         <p class="eyebrow">Compiler Design Lab Project</p>
         <h1>Syntax Tree Visualizer</h1>
-        <p class="subtitle">Explore source code, syntax trees, semantic checks and intermediate code.</p>
+        <p class="subtitle">Explore parsing, semantic analysis, optimization and virtual target code.</p>
         <div class="project-badges" aria-label="Project highlights">
           <span>Recursive-Descent Parser</span>
           <span>Interactive SVG</span>
@@ -50,6 +53,7 @@
     </div>
   </section>
 
+  <nav class="workbench-nav" aria-label="Workbench sections"><a href="#editorTitle">Source &amp; AST</a><a href="#compilerLab">Compiler Stages</a><a href="#grammarLab">Grammar Lab</a></nav>
   <main class="app-shell">
     <section class="editor-panel panel" aria-labelledby="editorTitle">
       <div class="panel-label">01 · Input</div>
@@ -65,6 +69,7 @@
             <option value="variables">Variables</option>
             <option value="condition">If / Else</option>
             <option value="loop">While Loop</option>
+            <option value="registers">Register Allocation</option>
             <option value="optimization">Constant Folding</option>
             <option value="flow">Control Flow</option>
             <option value="scopes">Nested Scopes</option>
@@ -246,7 +251,7 @@ primary      → literal | ID | array | "(" expression ")"</pre>
     </aside>
   </main>
 
-  <section class="compiler-lab panel" aria-labelledby="compilerTitle">
+  <section id="compilerLab" class="compiler-lab panel" aria-labelledby="compilerTitle">
     <div class="section-heading">
       <div><div class="panel-label">04 · Beyond the syntax tree</div><h2 id="compilerTitle">Compiler Workbench</h2>
       <p>Follow declarations through scopes, intermediate instructions and basic blocks.</p></div>
@@ -258,6 +263,7 @@ primary      → literal | ID | array | "(" expression ")"</pre>
       <button id="irButton" class="lab-tab" type="button" role="tab" aria-selected="false" aria-controls="irPanel" data-stage="ir" tabindex="-1">Three-Address Code</button>
       <button id="optimizationButton" class="lab-tab" type="button" role="tab" aria-selected="false" aria-controls="optimizationPanel" data-stage="optimization" tabindex="-1">Optimization</button>
       <button id="cfgButton" class="lab-tab" type="button" role="tab" aria-selected="false" aria-controls="cfgPanel" data-stage="cfg" tabindex="-1">Control-Flow Graph</button>
+      <button id="backendButton" class="lab-tab" type="button" role="tab" aria-selected="false" aria-controls="backendPanel" data-stage="backend" tabindex="-1">Code Generation</button>
     </div>
     <div id="semanticsPanel" class="lab-panel" role="tabpanel" aria-labelledby="semanticsButton">
       <div class="lab-columns"><div><h3>Diagnostics</h3><div id="diagnostics"></div>
@@ -278,6 +284,32 @@ primary      → literal | ID | array | "(" expression ")"</pre>
       <p class="panel-note">Basic blocks from unoptimized TAC. Arrows show jumps and fall-through; functions have separate entries. Calls stay within instructions. Dashed blocks are structurally unreachable, without evaluating conditions.</p>
       <div id="cfgGraph" class="cfg-graph"></div><h3>Block Connections</h3><div id="cfgEdges" class="table-scroll"></div>
     </div>
+    <div id="backendPanel" class="lab-panel" role="tabpanel" aria-labelledby="backendButton" hidden>
+      <div class="backend-controls">
+        <label>TAC input <select id="backendSource"><option value="ir">Original TAC</option><option value="optimized">Optimized TAC</option></select></label>
+        <label>Available registers <select id="registerCount"><option value="3">3 registers</option><option value="4">4 registers</option><option value="6">6 registers</option></select></label>
+      </div>
+      <p class="panel-note">Virtual register-machine target with next-use-based local allocation. Dirty values are stored before eviction, block exits and calls. This is symbolic target code, not x86/ARM or LLVM output.</p>
+      <p id="backendSummary" class="compiler-summary" role="status"></p>
+      <div class="lab-columns"><div><h3>Virtual Target Code</h3><pre id="targetCode" class="code-output"></pre></div><div><h3>Register Allocation Trace</h3><div id="allocationTrace" class="table-scroll"></div><p class="panel-note">* means the register has a newer value than memory. Eviction events explain register reuse.</p></div></div>
+      <h3>Live Variable Analysis</h3><p class="panel-note">OUT[B] = union of successor IN sets. IN[B] = USE[B] ∪ (OUT[B] − DEF[B]). Calls and exits conservatively use globals. Each function is analyzed separately.</p>
+      <div id="livenessTable" class="table-scroll"></div>
+      <h3>Next Use after Each TAC Instruction</h3><p class="panel-note">Numbers are TAC instruction positions within this block; “exit” means live at the boundary. An absent name has no known later use in the block and is not live out.</p>
+      <div id="nextUseTable" class="table-scroll"></div>
+    </div>
+  </section>
+
+  <section id="grammarLab" class="compiler-lab panel" aria-labelledby="grammarLabTitle">
+    <div class="section-heading"><div><div class="panel-label">05 · Syntax analysis laboratory</div><h2 id="grammarLabTitle">Grammar Lab</h2><p>Edit a context-free grammar and inspect predictive parsing.</p></div>
+    <label class="sample-picker">Grammar example <select id="grammarSample"><option value="expression">LL(1) Expressions</option><option value="nullable">Nullable Productions</option><option value="conflict">Table Conflict</option><option value="recursive">Left Recursion</option></select></label></div>
+    <div class="lab-columns"><div><label for="grammarInput">Productions</label><textarea id="grammarInput" class="grammar-editor" spellcheck="false" aria-describedby="grammarFormat"></textarea>
+    <p id="grammarFormat" class="panel-note">One rule per line: E -&gt; T E_tail. Separate all symbols with spaces; use | for alternatives and ε or epsilon for empty. First left-hand side is the start symbol. Any symbol never defined on the left is a terminal.</p></div>
+    <div><label for="grammarTokens">Input tokens</label><input id="grammarTokens" class="grammar-token-input" value="id + id * id" spellcheck="false" aria-describedby="grammarTokenHelp"><p id="grammarTokenHelp" class="panel-note">Enter terminal names separated by spaces. Leave empty to test the empty word. The end marker $ is added automatically. This grammar is independent of the C-like source parser above.</p>
+    <button id="analyzeGrammarBtn" class="primary-button" type="button">Analyze Grammar &amp; Parse</button><p id="grammarSummary" class="compiler-summary" role="status" aria-live="polite"></p><div id="grammarWarnings"></div></div></div>
+    <div class="lab-columns"><div><h3>FIRST and FOLLOW</h3><div id="firstFollowTable" class="table-scroll"></div></div><div><h3>Numbered Productions</h3><div id="productionTable" class="table-scroll"></div></div></div>
+    <h3>LL(1) Predictive Parsing Table</h3><div id="ll1Table" class="table-scroll"></div><p class="panel-note">P1, P2, … refer to productions above. Multiple rules in one cell are a conflict; empty cells are parsing errors.</p>
+    <div class="trace-heading"><h3>Parsing Trace</h3><div class="inline-actions"><button id="grammarStepBtn" type="button" class="secondary-button" disabled>Next Step</button><button id="grammarRunBtn" type="button" class="secondary-button" disabled>Show All</button><button id="grammarResetBtn" type="button" class="secondary-button" disabled>Reset Trace</button></div></div>
+    <p id="traceStatus" class="panel-note" role="status"></p><div id="grammarTrace" class="table-scroll"></div>
   </section>
 
   <footer>

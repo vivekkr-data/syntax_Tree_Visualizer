@@ -3,10 +3,10 @@
 ![HTML](https://img.shields.io/badge/HTML5-Project-e34f26?logo=html5&logoColor=white)
 ![CSS](https://img.shields.io/badge/CSS3-Responsive-1572b6?logo=css3&logoColor=white)
 ![JavaScript](https://img.shields.io/badge/JavaScript-Vanilla-f7df1e?logo=javascript&logoColor=111)
-![Tests](https://img.shields.io/badge/Automated_Tests-90_Passed-16a34a)
+![Tests](https://img.shields.io/badge/Automated_Tests-137_Passed-16a34a)
 ![Dependencies](https://img.shields.io/badge/Dependencies-None-16a34a)
 
-An interactive Compiler Design lab project that converts an educational C-like source program into tokens and an Abstract Syntax Tree (AST). The extended workbench adds scoped semantic checks, scalar three-address code (TAC), quadruples, constant folding and a control-flow graph. All stages use plain JavaScript.
+An interactive Compiler Design lab project that converts an educational C-like source program into tokens and an Abstract Syntax Tree (AST). The extended workbench adds scoped semantic checks, scalar three-address code (TAC), quadruples, constant folding, control-flow/liveness analysis, register allocation and virtual target code. An independent Grammar Lab computes FIRST/FOLLOW, LL(1) tables and parsing traces. All stages use plain JavaScript.
 
 **Existing Render deployment:** [https://syntax-tree-visualizer-fwpv.onrender.com/](https://syntax-tree-visualizer-fwpv.onrender.com/)
 
@@ -21,9 +21,12 @@ The extension is documented in [EXTENSION_GUIDE.md](EXTENSION_GUIDE.md), includi
 | Intermediate code | Scalar expressions, function calls, conditionals and loops; TAC and quadruples |
 | Optimization | Literal-only safe-integer constant folding with before/after instructions and rule log |
 | Control flow | Basic blocks, labeled edges, separate function entries and structurally unreachable blocks |
+| Grammar Lab | Editable grammar, FIRST/FOLLOW, LL(1) table, conflict/left-recursion detection and parsing trace |
+| Data flow | Fixed-point live-variable sets and per-instruction next use |
+| Code generation | 3/4/6-register virtual target with allocation/eviction trace and call barriers |
 | Export | Analysis JSON with source, diagnostics, symbols, TAC, optimization and CFG |
 
-These stages are visible in **Compiler Workbench**, below the existing AST workspace. Editing the source clears previous analysis so exports cannot silently contain stale results.
+These stages are visible in **Compiler Workbench**, below the existing AST workspace. **Grammar Lab** is a separate section with its own grammar and input. See [SYLLABUS_MAPPING.md](SYLLABUS_MAPPING.md) for the uploaded BCSE307L syllabus mapping and demo sequence. Editing the source clears previous analysis so exports cannot silently contain stale results.
 
 ## 1. Problem Statement
 
@@ -189,9 +192,11 @@ Node.js is only required for running the tests; it is not required to use the we
 ```bash
 node tests/parser-tests.js
 node tests/compiler-tests.js
+node tests/grammar-tests.js
+node tests/backend-tests.js
 ```
 
-The parser suite contains **38 checks**; the compiler suite adds **52 checks**. The latter includes a test-only IR evaluator to verify loops, short-circuit evaluation, recursion, argument order, and matching original/optimized results. The website does not execute source programs. Parser checks cover:
+The suites contain **137 checks**: 38 parser, 52 compiler, 26 grammar and 21 backend checks. The latter includes a test-only IR evaluator to verify loops, short-circuit evaluation, recursion, argument order, and matching original/optimized results. The website does not execute source programs. Parser checks cover:
 
 - Valid expressions, declarations, functions, arrays, pointers, conditions, and loops
 - A directly pasted C-style recursive factorial program
@@ -205,6 +210,8 @@ Expected final line:
 ```text
 ALL 38 TESTS PASSED
 ALL 52 COMPILER TESTS PASSED
+ALL 26 GRAMMAR TESTS PASSED
+ALL 21 BACKEND TESTS PASSED
 ```
 
 ## 10. Project Files
@@ -218,6 +225,10 @@ ALL 52 COMPILER TESTS PASSED
 | `visualizer.js` | Tree layout, SVG rendering, zoom, pan, traversal, and export |
 | `app.js` | UI events, examples, symbols, tokens, downloads, and statistics |
 | `compiler.js` | Semantic analysis, TAC generation, constant folding and CFG construction |
+| `backend.js` | Liveness, next use and local register-machine target generation |
+| `grammar.js` / `grammar-ui.js` | Configurable grammar analysis and predictive parsing trace |
+| `tests/grammar-tests.js` / `tests/backend-tests.js` | Grammar and target-code regression checks |
+| `SYLLABUS_MAPPING.md` | BCSE307L implemented/missing topics and faculty demo |
 | `compiler-ui.js` | Compiler stage panels, diagnostics, graph and analysis export |
 | `tests/compiler-tests.js` | Compiler regression tests and test-only TAC evaluator |
 | `EXTENSION_GUIDE.md` | Extension scope, architecture and demonstration |
@@ -289,7 +300,7 @@ The following are outside the current scope:
 - Function prototypes without bodies
 - Complete C/C++ declarator rules
 - Complete C type checking, definite assignment and all-path return analysis
-- Array/pointer memory lowering and machine-code generation
+- Array/pointer memory lowering and native machine-code generation
 
 Keeping the grammar focused makes every implemented compiler stage visible and explainable during a lab viva.
 

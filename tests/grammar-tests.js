@@ -1,0 +1,37 @@
+'use strict';
+const assert = require('node:assert/strict');
+global.window = global; require('../grammar.js');
+let count = 0;
+function test(name, run) { run(); count++; console.log(`PASS grammar: ${name}`); }
+const expression = 'E -> T E_tail\nE_tail -> + T E_tail | ε\nT -> F T_tail\nT_tail -> * F T_tail | ε\nF -> ( E ) | id';
+const analyze = SyntaxGrammar.analyze, parse = SyntaxGrammar.trace;
+const sorted = values => [...values].sort();
+test('expression FIRST and FOLLOW', () => {
+  const g=analyze(expression);assert.equal(g.ll1,true);assert.deepEqual(g.first.E,['(','id']);assert.deepEqual(g.follow.E,['$',')']);assert.deepEqual(g.follow.T,['$',')','+']);
+});
+test('expression precedence grammar accepts',()=>assert.equal(parse(analyze(expression),'id + id * id').accepted,true));
+test('nested parentheses accepts',()=>assert.equal(parse(analyze(expression),'( id + id ) * id').accepted,true));
+test('missing operand rejects',()=>assert.equal(parse(analyze(expression),'id + * id').accepted,false));
+test('missing closing parenthesis rejects',()=>assert.equal(parse(analyze(expression),'( id').accepted,false));
+test('extra trailing token rejects',()=>assert.equal(parse(analyze('S -> a'),'a a').accepted,false));
+test('nullable prefix FIRST propagates',()=>{const g=analyze('S -> A B\nA -> a | ε\nB -> b | ε');assert.deepEqual(g.first.S,sorted(['a','b','ε']));assert.deepEqual(g.follow.A,sorted(['b','$']));});
+test('empty word accepts nullable start',()=>assert.ok(parse(analyze('S -> A B\nA -> a | ε\nB -> b | ε'),'').accepted));
+test('empty word rejected nonnullable',()=>assert.equal(parse(analyze('S -> a'),'').accepted,false));
+test('FIRST FIRST conflict retained',()=>{const g=analyze('S -> a A | a B\nA -> c\nB -> d');assert.equal(g.ll1,false);assert.equal(g.conflicts[0].productions.length,2);assert.throws(()=>parse(g,'a c'));});
+test('FIRST FOLLOW conflict retained',()=>{const g=analyze('S -> A a\nA -> a | ε');assert.ok(g.conflicts.some(c=>c.nonterminal==='A'&&c.terminal==='a'));});
+test('direct left recursion detected',()=>assert.deepEqual(analyze('E -> E + T | T\nT -> id').leftRecursive,['E']));
+test('indirect nullable-prefix recursion',()=>{const g=analyze('S -> A B\nA -> ε\nB -> S | b');assert.ok(g.leftRecursive.includes('S'));assert.ok(g.leftRecursive.includes('B'));});
+test('nonproductive cycle terminates',()=>{const g=analyze('S -> A\nA -> S');assert.equal(g.ll1,false);assert.deepEqual(g.unproductive,['S','A']);});
+test('unreachable rule reported',()=>assert.deepEqual(analyze('S -> a\nUnused -> b').unreachable,['Unused']));
+test('duplicate alternatives deduplicated',()=>assert.equal(analyze('S -> a | a').productions.length,1));
+test('epsilon alias',()=>assert.ok(parse(analyze('S -> epsilon'),'').accepted));
+test('unknown terminal rejected with explanation',()=>assert.throws(()=>parse(analyze(expression),'number'),/Unknown terminal/));
+test('end marker reserved',()=>{assert.throws(()=>analyze('S -> $'));assert.throws(()=>parse(analyze('S -> a'),'a $'));});
+test('epsilon mixed with symbols rejected',()=>assert.throws(()=>analyze('S -> ε a')));
+test('missing alternative rejected',()=>assert.throws(()=>analyze('S -> a |')));
+test('invalid production rejected',()=>assert.throws(()=>analyze('S : a')));
+test('prototype-like terminal safely rejects missing cell',()=>{const g=analyze('S -> a A | __proto__\nA -> b');assert.equal(parse(g,'a __proto__').accepted,false);assert.equal(parse(g,'__proto__').accepted,true);});
+test('trace bounded',()=>{const result=parse(analyze('S -> a S | ε'),'a a a',2);assert.equal(result.truncated,true);});
+test('token limit enforced',()=>assert.throws(()=>parse(analyze('S -> a S | ε'),Array(251).fill('a').join(' ')),/250/));
+test('stack trace starts with start symbol',()=>assert.equal(parse(analyze('S -> a'),'a').steps[0].stack,'S $'));
+console.log(`ALL ${count} GRAMMAR TESTS PASSED`);

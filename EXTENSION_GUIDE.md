@@ -79,4 +79,59 @@ Browser visual/interaction QA was not run as part of this extension. Syntax chec
 
 ## Academic scope
 
-This extension demonstrates semantic analysis, symbol tables, intermediate code generation, a basic optimization and control-flow analysis in addition to the original lexical/syntax analysis. The earlier uploaded proposal describes the initial version; its future-TAC paragraph should be updated for a new proposal submission. An exact syllabus document was not available during this extension, so this guide does not claim complete syllabus/module coverage. Machine-code generation, LLVM integration, FIRST/FOLLOW computation and LR parser-table construction are not implemented.
+This extension demonstrates semantic analysis, symbol tables, intermediate code generation, a basic optimization and control-flow analysis in addition to the original lexical/syntax analysis. The earlier uploaded proposal describes the initial version; its future-TAC paragraph should be updated for a new proposal submission. The uploaded BCSE307L syllabus now grounds the mapping in SYLLABUS_MAPPING.md. FIRST/FOLLOW and LL(1) construction were added in the syllabus-based expansion below. Native machine-code generation, LLVM integration and LR parser-table construction remain outside scope.
+
+## Syllabus-based expansion: Grammar Lab and Code Generation
+
+The uploaded BCSE307L version 1.0 syllabus is now available. See [SYLLABUS_MAPPING.md](SYLLABUS_MAPPING.md) for an explicit implemented/missing mapping for all eight modules.
+
+### Grammar Lab
+
+`grammar.js` computes FIRST and FOLLOW by fixed-point iteration, constructs the LL(1) prediction table, keeps conflicting productions instead of choosing one arbitrarily, detects nullable-prefix direct/indirect left recursion, and reports unproductive/unreachable nonterminals. `grammar-ui.js` presents the table and a stepwise stack/input/action trace.
+
+This is an independent configurable grammar laboratory. It does not dynamically replace the source-code parser. Define rules with `->` or `→`; separate every symbol with spaces; use `|` for alternatives and `ε` or `epsilon` for the empty word. Left-hand sides define nonterminals; all other symbols are terminals. The first defined nonterminal is the start symbol. `$` is reserved for the automatically appended end marker. Literal pipe tokens and grammar comments are not supported. Duplicate alternatives are deduplicated.
+
+Predictive tracing requires no table conflicts, no left recursion and productive rules. Unreachable rules receive a warning. Invalid input is rejected with a final trace action or an input-format message. Bounds: 20,000 grammar characters, 160 alternatives, 50 nonterminals, 100 terminals, 50 symbols per alternative, 250 input tokens and 1,000 trace actions. These are responsiveness limits, not language-theory limits. The tool detects left recursion but does not rewrite the grammar automatically.
+
+### Data flow and next use
+
+`backend.js` uses the existing CFG to compute `OUT[B] = union(IN[successors])` and `IN[B] = USE[B] union (OUT[B] - DEF[B])` to convergence. A reverse instruction scan then records each live value's next use after each TAC instruction, or `exit` for a block-boundary value. Instruction positions are numbered consistently with the selected original/optimized TAC.
+
+Calls and exits conservatively treat all declared globals as used. There is no interprocedural liveness solution or alias analysis. Register allocation is local to a basic block. The liveness/next-use view is not a definite-assignment validator. The backend supports at most 2,000 TAC instructions per analysis.
+
+### Virtual register-machine target
+
+Select original or optimized TAC and 3, 4 or 6 registers. The allocator reuses cached operands and, under pressure, evicts an unprotected register with the farthest next use (preferring no later local use). Dirty values are stored before eviction; dirty state is also flushed at block boundaries and before calls. Every register cache is invalidated after a call because globals may change and registers may be clobbered. Values are conservatively stored even if a more advanced dead-store analysis could remove the write.
+
+The output is a **custom symbolic target**, not x86, ARM, JVM bytecode, WebAssembly or LLVM. Values use the teaching IR model described earlier; native types, overflow and ABI rules are not claimed.
+
+| Instruction | Meaning |
+| --- | --- |
+| `DECLARE slot, type` | Declare a symbolic memory slot; no native byte offset is assigned |
+| `CONST R, literal` | Load a literal value into a register |
+| `LOAD R, slot` / `STORE slot, R` | Transfer a value between a register and symbolic memory |
+| `MOVE Rd, Rs` | Copy a register value |
+| `BINARY Rd, op, Ra, Rb` | Apply the specified binary IR operation |
+| `UNARY Rd, op, Rs` | Apply unary arithmetic, logical or boolean normalization |
+| `LABEL name` / `JMP name` | Define a target / unconditional transfer |
+| `JZ R, label` / `JNZ R, label` | Conditional jump based on zero/false |
+| `FUNCTION name` / `END name` | Delimit a function section |
+| `ARG R, index` | Receive a zero-indexed argument into a register |
+| `PARAM R` | Queue a value as an argument to the next call |
+| `CALL R, function, count` | Consume arguments, call the function and place its return value in R |
+| `RET R` / `RET` | Return a value / return without a value |
+| `PRINT R` | Symbolic print operation |
+| `HALT` | End the global section |
+
+At a call, a virtual frame conceptually owns local slots, temporaries, registers, arguments and a return address; global slots are shared. The app does not execute this target or draw physical activation records. A test-only evaluator checks these conventions, including recursion and invalidation after global writes. External calls remain symbolic without providing external function implementations.
+
+The allocation trace ties target decisions to TAC instruction numbers. `*` marks dirty register values. Analysis JSON includes the currently selected backend input, register count, target instructions, allocation trace and data-flow output.
+
+### Additional tests
+
+```bash
+node tests/grammar-tests.js
+node tests/backend-tests.js
+```
+
+26 grammar checks and 21 backend checks supplement the 90 previous checks (137 total). Six target-generation combinations (original/optimized × 3/4/6 registers) run inside each of 16 backend behavior fixtures. Passing these fixtures is not a proof of arbitrary-program correctness. Browser visual/interaction testing remains separate and has not been performed.

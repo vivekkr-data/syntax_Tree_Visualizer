@@ -2,6 +2,7 @@
   'use strict';
 
   const samples = {
+    registers: `int a = 3, b = 4, c = 5, d = 6;\nint left = (a + b) * (c + d);\nint right = (a * c) + (b * d);\nprint(left + right);`,
     optimization: `int result = (4 + 5) * (12 - 2);\nprint(result);`,
     flow: `int total = 0;\nfor (int i = 0; i < 6; i++) {\n  if (i == 2) continue;\n  total += i;\n}\nprint(total);`,
     scopes: `int value = 10;\n{\n  int value = 20;\n  print(value);\n}\nprint(value);`,

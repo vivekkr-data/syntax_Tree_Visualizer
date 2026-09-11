@@ -440,3 +440,16 @@ body.dark .lab-tab.active { color: #101a2d; }
 .cfg-graph summary { cursor: pointer; padding: 1rem 0; color: var(--text); }
 .pipeline-track { flex-wrap: wrap; }
 @media (max-width: 900px) { .lab-columns { grid-template-columns: minmax(0, 1fr); } .compiler-lab { width: calc(100% - 1.5rem); padding: 1rem; } }
+
+.workbench-nav { display: flex; gap: .75rem; flex-wrap: wrap; margin: 1rem 1.5rem; }
+.workbench-nav a { font-size: .875rem; color: var(--primary-dark); background: var(--panel); padding: .65rem 1rem; border: 1px solid var(--border); border-radius: 8px; text-decoration: none; }
+.workbench-nav a:focus-visible { outline: 3px solid var(--highlight); outline-offset: 2px; }
+#compilerLab, #grammarLab { scroll-margin-top: 1rem; }
+.backend-controls, .trace-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; margin-top: 1rem; }
+.backend-controls label { display: flex; gap: .75rem; align-items: center; font-size: .875rem; }
+.grammar-editor, .grammar-token-input { display: block; width: 100%; border: 1px solid var(--border); border-radius: 8px; color: var(--text); background: var(--panel-soft); font: 1rem/1.7 ui-monospace, monospace; padding: 1rem; margin-top: .5rem; }
+.grammar-editor { min-height: 220px; resize: vertical; tab-size: 2; }
+.grammar-editor:focus, .grammar-token-input:focus { outline: 2px solid var(--primary); outline-offset: 2px; }
+#grammarLab .compiler-table td { white-space: nowrap; }
+#grammarWarnings p { font-size: .875rem; }
+.trace-heading .inline-actions { flex-wrap: wrap; }

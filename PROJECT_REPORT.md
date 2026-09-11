@@ -28,7 +28,7 @@ Compiler data structures such as syntax trees are difficult to understand only t
 
 ## 5. Scope
 
-The current project supports inferred, qualified, and typed variable declarations; functions; one-dimensional and multi-dimensional arrays; indexing; simple pointer expressions and dereferenced assignments; arithmetic, logical, bitwise, shift, and conditional expressions; generic calls such as `printf` and `scanf`; if/else chains; while/for/do-while loops; return/break/continue statements; literals; and comments. Common preprocessor lines such as `#include` are ignored before parsing, matching their position before compiler syntax analysis. The extension adds scoped semantic checks, scalar TAC, quadruples, literal constant folding and CFG construction. Complete language standards, memory lowering for arrays/pointers, and machine-code generation remain outside the scope. See EXTENSION_GUIDE.md for exact pass boundaries.
+The current project supports inferred, qualified, and typed variable declarations; functions; one-dimensional and multi-dimensional arrays; indexing; simple pointer expressions and dereferenced assignments; arithmetic, logical, bitwise, shift, and conditional expressions; generic calls such as `printf` and `scanf`; if/else chains; while/for/do-while loops; return/break/continue statements; literals; and comments. Common preprocessor lines such as `#include` are ignored before parsing, matching their position before compiler syntax analysis. The extension adds scoped semantic checks, scalar TAC, quadruples, literal constant folding and CFG construction. The syllabus-based expansion adds configurable FIRST/FOLLOW and LL(1) table construction, predictive traces, live-variable analysis, next use and local register allocation to a symbolic target. Complete language standards, memory lowering for arrays/pointers, and native machine-code generation remain outside the scope. See EXTENSION_GUIDE.md for exact pass boundaries.
 
 ## 6. Technologies Used
 
@@ -227,7 +227,7 @@ Expected: the preprocessor line is ignored and a valid tree is generated for the
 
 ### Automated Regression Suite
 
-Run `node tests/parser-tests.js` and `node tests/compiler-tests.js`. The suites contain 38 parser checks and 52 compiler checks (90 total). The compiler suite checks both unoptimized and optimized IR with a test-only evaluator, including recursion, loop control and short-circuit side effects. Browser interaction testing is separate from these checks.
+Run `node tests/parser-tests.js` and `node tests/compiler-tests.js`. The suites contain 38 parser checks and 52 compiler checks (90 total). The compiler suite checks both unoptimized and optimized IR with a test-only evaluator, including recursion, loop control and short-circuit side effects. The grammar suite adds 26 checks and the backend suite adds 21 checks, taking the total to 137. Run `node tests/grammar-tests.js` and `node tests/backend-tests.js` as well. Backend fixtures check original/optimized TAC at three register budgets. Browser interaction testing is separate from these checks.
 
 ## 13. Advantages
 
@@ -258,3 +258,7 @@ Run `node tests/parser-tests.js` and `node tests/compiler-tests.js`. The suites 
 ## 16. Conclusion
 
 The project successfully demonstrates the major front-end stages of a compiler in an interactive manner. It combines tokenization, recursive-descent parsing, AST construction, graphical rendering, traversal, and node inspection. It is useful as a practical compiler-design project and as an educational visualization tool.
+
+## 17. Syllabus-Based Extension
+
+The uploaded BCSE307L syllabus version 1.0 is mapped in `SYLLABUS_MAPPING.md`. The independent Grammar Lab demonstrates FIRST/FOLLOW, LL(1) tables, conflicts and predictive traces (Module 2). Data-flow/next-use views and the symbolic register-machine backend extend Modules 5 and 6. The exact features, bounds, target conventions and missing topics are documented in `EXTENSION_GUIDE.md`. The project does not claim complete coverage of all eight modules.
