@@ -9,6 +9,15 @@
   const ASSIGNMENT_OPERATORS = new Set([
     '=', '+=', '-=', '*=', '/=', '%=', '&=', '|=', '^=', '<<=', '>>='
   ]);
+  const VALID_TYPES = new Set(['float', 'double', 'long double', 'bool', 'string', 'void']
+    .map(type => type.split(' ').sort().join(' ')));
+  for (const base of ['int', 'short', 'short int', 'long', 'long int', 'long long', 'long long int', 'char']) {
+    for (const sign of ['', 'signed', 'unsigned']) {
+      VALID_TYPES.add(`${sign} ${base}`.trim().split(/\s+/).sort().join(' '));
+    }
+  }
+  VALID_TYPES.add('signed');
+  VALID_TYPES.add('unsigned');
 
   class ParserError extends Error {
     constructor(message, token) {
@@ -39,6 +48,7 @@
     }
 
     parseStatement() {
+      if (this.matchLexeme(';')) return { type: 'EmptyStatement' };
       if (this.matchLexeme('function')) return this.functionDeclaration(null);
 
       if (this.isTypedFunctionStart()) {
@@ -54,7 +64,7 @@
         return this.variableDeclaration(kind, true, dataType);
       }
 
-      if (TYPE_KEYWORDS.has(this.peek().lexeme) && this.peek().lexeme !== 'void') {
+      if (TYPE_KEYWORDS.has(this.peek().lexeme)) {
         const dataType = this.typeName();
         return this.variableDeclaration(dataType, true, dataType);
       }
@@ -84,9 +94,12 @@
     }
 
     typeName() {
+      const start = this.peek();
       const parts = [];
       while (TYPE_KEYWORDS.has(this.peek().lexeme)) parts.push(this.advance().lexeme);
       if (parts.length === 0) throw new ParserError('Expected a data type', this.peek());
+      // Ignore specifier order, but reject contradictory or repeated type words.
+      if (!VALID_TYPES.has([...parts].sort().join(' '))) throw new ParserError(`Invalid type combination '${parts.join(' ')}'`, start);
       return parts.join(' ');
     }
 
@@ -96,6 +109,7 @@
         let pointerDepth = 0;
         while (this.matchLexeme('*')) pointerDepth += 1;
         const name = this.consumeType('IDENTIFIER', `Expected a variable name after ${kind}`);
+        if (explicitDataType === 'void' && pointerDepth === 0) throw new ParserError('A variable cannot have type void', name);
         const dimensions = [];
         while (this.matchLexeme('[')) {
           let size = null;
@@ -103,7 +117,6 @@
           this.consumeLexeme(']', "Expected ']' after array size");
           dimensions.push(size);
         }
-        const arraySize = dimensions[0] || null;
         let initializer = null;
         if (this.matchLexeme('=')) initializer = this.expression();
         declarations.push({
@@ -113,7 +126,6 @@
           name: name.lexeme,
           loc: { line: name.line, column: name.column },
           pointerDepth,
-          arraySize,
           dimensions,
           initializer
         });
@@ -138,6 +150,7 @@
           let pointerDepth = 0;
           while (this.matchLexeme('*')) pointerDepth += 1;
           const parameter = this.consumeType('IDENTIFIER', 'Expected a parameter name');
+          if (dataType === 'void' && pointerDepth === 0) throw new ParserError('Use void alone for an empty parameter list', parameter);
           const dimensions = [];
           while (this.matchLexeme('[')) {
             let size = null;
@@ -145,8 +158,7 @@
             this.consumeLexeme(']', "Expected ']' after parameter array size");
             dimensions.push(size);
           }
-          const arraySize = dimensions[0] || null;
-          parameters.push({ type: 'Parameter', name: parameter.lexeme, dataType, pointerDepth, arraySize, dimensions, loc: { line: parameter.line, column: parameter.column } });
+          parameters.push({ type: 'Parameter', name: parameter.lexeme, dataType, pointerDepth, dimensions, loc: { line: parameter.line, column: parameter.column } });
         } while (this.matchLexeme(','));
       }
 
@@ -175,10 +187,10 @@
       this.consumeLexeme('(', "Expected '(' after if");
       const condition = this.expression();
       this.consumeLexeme(')', "Expected ')' after condition");
-      const consequent = this.statement();
+      const consequent = this.controlBody();
       let alternate = null;
       if (this.matchLexeme('else')) {
-        alternate = this.matchLexeme('if') ? this.ifStatement() : this.statement();
+        alternate = this.controlBody();
       }
       return { type: 'IfStatement', condition, consequent, alternate };
     }
@@ -187,7 +199,7 @@
       this.consumeLexeme('(', "Expected '(' after while");
       const condition = this.expression();
       this.consumeLexeme(')', "Expected ')' after condition");
-      const body = this.statement();
+      const body = this.controlBody();
       return { type: 'WhileStatement', condition, body };
     }
 
@@ -200,7 +212,7 @@
         const kind = this.advance().lexeme;
         const dataType = TYPE_KEYWORDS.has(this.peek().lexeme) ? this.typeName() : null;
         initializer = this.variableDeclaration(kind, true, dataType);
-      } else if (TYPE_KEYWORDS.has(this.peek().lexeme) && this.peek().lexeme !== 'void') {
+      } else if (TYPE_KEYWORDS.has(this.peek().lexeme)) {
         const dataType = this.typeName();
         initializer = this.variableDeclaration(dataType, true, dataType);
       } else {
@@ -215,7 +227,7 @@
       let update = null;
       if (!this.checkLexeme(')')) update = this.forExpressionList();
       this.consumeLexeme(')', "Expected ')' after for-loop clauses");
-      const body = this.statement();
+      const body = this.controlBody();
       return { type: 'ForStatement', initializer, condition, update, body };
     }
 
@@ -226,13 +238,22 @@
     }
 
     doWhileStatement() {
-      const body = this.statement();
+      const body = this.controlBody();
       this.consumeLexeme('while', "Expected 'while' after do-loop body");
       this.consumeLexeme('(', "Expected '(' after while");
       const condition = this.expression();
       this.consumeLexeme(')', "Expected ')' after do-while condition");
       this.consumeLexeme(';', "Expected ';' after do-while statement");
       return { type: 'DoWhileStatement', body, condition };
+    }
+
+    controlBody() {
+      const start = this.peek();
+      const body = this.statement();
+      if (['VariableDeclaration', 'VariableDeclarationList', 'FunctionDeclaration'].includes(body.type)) {
+        throw new ParserError('Wrap declarations in a block with braces', start);
+      }
+      return body;
     }
 
     returnStatement() {

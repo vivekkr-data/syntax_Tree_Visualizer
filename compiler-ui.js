@@ -4,17 +4,7 @@
   let result = null, source = '';
   const backendFields = ['backendSummary', 'targetCode', 'allocationTrace', 'livenessTable', 'nextUseTable'];
   const fields = [...backendFields, 'diagnostics', 'scopedSymbols', 'tacOutput', 'quadruples', 'beforeCode', 'afterCode', 'optimizationSummary', 'optimizationRules', 'cfgGraph', 'cfgEdges'];
-  function table(id, headers, rows) {
-    const target = byId(id); target.replaceChildren();
-    if (!rows.length) { target.textContent = 'No entries for this program.'; return; }
-    const table = document.createElement('table'); table.className = 'compiler-table';
-    const head = document.createElement('thead'), tr = document.createElement('tr');
-    headers.forEach(label => { const th = document.createElement('th'); th.scope = 'col'; th.textContent = label; tr.append(th); });
-    head.append(tr); table.append(head);
-    const body = document.createElement('tbody');
-    rows.forEach(row => { const tr = document.createElement('tr'); row.forEach(value => { const td = document.createElement('td'); td.textContent = String(value ?? '—'); tr.append(td); }); body.append(tr); });
-    table.append(body); target.append(table);
-  }
+  const { table, downloadText } = SyntaxUI;
   function svgElement(tag, attrs = {}, text) {
     const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
     Object.entries(attrs).forEach(([key, value]) => el.setAttribute(key, value));
@@ -147,8 +137,6 @@
   byId('downloadReportBtn').addEventListener('click', () => {
     if (!result) return;
     const { bindings, ...report } = result;
-    const blob = new Blob([JSON.stringify({ source, ...report }, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob), anchor = document.createElement('a');
-    anchor.href = url; anchor.download = 'compiler-analysis.json'; anchor.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+    downloadText('compiler-analysis.json', JSON.stringify({ source, ...report }, null, 2), 'application/json');
   });
 })();

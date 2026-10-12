@@ -61,6 +61,8 @@
       // Preprocessor directives are handled before parsing in a real C compiler.
       // Ignoring the complete line lets common C examples start with #include.
       if (char === '#') {
+        const linePrefix = this.source.slice(this.current - startColumn, this.current - 1);
+        if (linePrefix.trim()) throw new TokenizerError('A preprocessor directive must start a line', startLine, startColumn);
         while (this.peek() !== '\n' && !this.isAtEnd()) this.advance();
         return;
       }
@@ -76,7 +78,7 @@
         return;
       }
 
-      if (/\d/.test(char)) {
+      if (/\d/.test(char) || (char === '.' && /\d/.test(this.peek()))) {
         this.number(char, startLine, startColumn);
         return;
       }
@@ -135,11 +137,18 @@
       let value = first;
       while (/\d/.test(this.peek())) value += this.advance();
 
-      if (this.peek() === '.' && /\d/.test(this.peekNext())) {
+      if (first !== '.' && this.peek() === '.') {
         value += this.advance();
         while (/\d/.test(this.peek())) value += this.advance();
       }
 
+      if (/[eE]/.test(this.peek())) {
+        value += this.advance();
+        if (['+', '-'].includes(this.peek())) value += this.advance();
+        if (!/\d/.test(this.peek())) throw new TokenizerError('Expected digits after exponent', line, column);
+        while (/\d/.test(this.peek())) value += this.advance();
+      }
+      if (!Number.isFinite(Number(value))) throw new TokenizerError('Number is outside the finite numeric range', line, column);
       this.tokens.push(this.makeToken(TokenType.NUMBER, value, Number(value), line, column));
     }
 
@@ -151,13 +160,17 @@
     }
 
     string(quote, line, column) {
+      const start = this.current - 1;
       let value = '';
       while (!this.isAtEnd() && this.peek() !== quote) {
+        if (['\n', '\r'].includes(this.peek())) throw new TokenizerError('Unterminated string or character literal', line, column);
         if (this.peek() === '\\') {
           this.advance();
+          if (this.isAtEnd() || ['\n', '\r'].includes(this.peek())) throw new TokenizerError('Unterminated escape sequence', line, column);
           const escaped = this.advance();
-          const replacements = { n: '\n', t: '\t', r: '\r', '"': '"', "'": "'", '\\': '\\' };
-          value += replacements[escaped] ?? escaped;
+          const replacements = { n: '\n', t: '\t', r: '\r', '0': '\0', '"': '"', "'": "'", '\\': '\\' };
+          if (!Object.hasOwn(replacements, escaped)) throw new TokenizerError(`Unsupported escape sequence \\${escaped}`, line, column);
+          value += replacements[escaped];
         } else {
           value += this.advance();
         }
@@ -165,7 +178,9 @@
 
       if (this.isAtEnd()) throw new TokenizerError('Unterminated string', line, column);
       this.advance();
-      this.tokens.push(this.makeToken(TokenType.STRING, value, value, line, column));
+      if (quote === "'" && [...value].length !== 1) throw new TokenizerError('A character literal must contain exactly one character', line, column);
+      // Keep source spelling separate from the decoded value. Quoted punctuation is never syntax.
+      this.tokens.push(this.makeToken(TokenType.STRING, this.source.slice(start, this.current), value, line, column));
     }
 
     makeToken(type, lexeme, literal, line, column) {

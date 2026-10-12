@@ -8,15 +8,7 @@
     recursive: { grammar: 'E -> E + T | T\nT -> id', input: 'id + id' }
   };
   let trace = null, shown = 0;
-  function table(id, headers, rows) {
-    const target = $(id); target.replaceChildren();
-    const table = document.createElement('table'); table.className = 'compiler-table';
-    const head = document.createElement('thead'), row = document.createElement('tr');
-    headers.forEach(value => { const th = document.createElement('th'); th.scope = 'col'; th.textContent = value; row.append(th); }); head.append(row); table.append(head);
-    const body = document.createElement('tbody');
-    rows.forEach(values => { const row = document.createElement('tr'); values.forEach(value => { const td = document.createElement('td'); td.textContent = value; row.append(td); }); body.append(row); });
-    table.append(body); target.append(table);
-  }
+  const { table } = SyntaxUI;
   function renderTrace() {
     const rows = trace ? trace.steps.slice(0, shown) : [];
     table('grammarTrace', ['Step', 'Stack (top first)', 'Remaining input', 'Action'], rows.map(s => [s.step, s.stack, s.input, s.action]));

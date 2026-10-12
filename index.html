@@ -5,16 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="Interactive syntax tree visualizer for learning compiler design." />
   <title>Syntax Tree Visualizer</title>
-  <link rel="stylesheet" href="style.css?v=20260911-2" />
-  <script defer src="tokenizer.js?v=20260911-2"></script>
-  <script defer src="parser.js?v=20260911-2"></script>
-  <script defer src="visualizer.js?v=20260911-2"></script>
-  <script defer src="compiler.js?v=20260911-2"></script>
-  <script defer src="backend.js?v=20260911-2"></script>
-  <script defer src="grammar.js?v=20260911-2"></script>
-  <script defer src="grammar-ui.js?v=20260911-2"></script>
-  <script defer src="compiler-ui.js?v=20260911-2"></script>
-  <script defer src="app.js?v=20260911-2"></script>
+  <link rel="stylesheet" href="style.css?v=20261012-1" />
+  <script defer src="tokenizer.js?v=20261012-1"></script>
+  <script defer src="parser.js?v=20261012-1"></script>
+  <script defer src="visualizer.js?v=20261012-1"></script>
+  <script defer src="compiler.js?v=20261012-1"></script>
+  <script defer src="backend.js?v=20261012-1"></script>
+  <script defer src="grammar.js?v=20261012-1"></script>
+  <script defer src="ui-utils.js?v=20261012-1"></script>
+  <script defer src="grammar-ui.js?v=20261012-1"></script>
+  <script defer src="compiler-ui.js?v=20261012-1"></script>
+  <script defer src="app.js?v=20261012-1"></script>
 </head>
 <body>
   <header class="topbar">
@@ -65,6 +66,7 @@
         <label class="sample-picker">
           Example
           <select id="sampleSelect">
+            <option value="custom" disabled>Custom Program</option>
             <option value="expression">Expression</option>
             <option value="variables">Variables</option>
             <option value="condition">If / Else</option>
@@ -215,7 +217,7 @@
       <div id="grammarTab" class="tab-content" role="tabpanel">
         <h2>Grammar Summary</h2>
         <pre class="grammar-block">program      → statement* EOF
-statement    → declaration | function | expression ";"
+statement    → block | declaration | function | expression ";" | ";"
              | "print" "(" expression ")" ";"
              | "if" "(" expression ")" statement
                ("else" statement)?
@@ -226,10 +228,11 @@ statement    → declaration | function | expression ";"
 block        → "{" statement* "}"
 declaration  → (let | var | const | type) declarator ("," declarator)* ";"
 function     → ("function" | type) ID "(" parameters? ")" block
-expression   → assignment | conditional
+expression   → assignment
 assignment   → conditional assignment-operator assignment | conditional
 assignment-operator → "=" | "+=" | "-=" | "*=" | "/=" | "%="
                     | "&=" | "|=" | "^=" | "<<=" | ">>="
+conditional  → logical-or ("?" expression ":" conditional)?
 logical-or   → logical-and ("||" logical-and)*
 logical-and  → bitwise-or ("&&" bitwise-or)*
 bitwise-or   → bitwise-xor ("|" bitwise-xor)*

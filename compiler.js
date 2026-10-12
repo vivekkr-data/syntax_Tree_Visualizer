@@ -3,7 +3,7 @@
 
   // Each pass owns its state. Parsing and AST inspection still work when later stages cannot run.
   const children = node => Object.entries(node || {}).flatMap(([key, value]) => {
-    if (key === 'arraySize' || key === 'loc') return [];
+    if (key === 'loc') return [];
     if (Array.isArray(value)) return value.filter(item => item && item.type);
     return value && value.type ? [value] : [];
   });
@@ -39,7 +39,7 @@
         if (symbol && symbol.kind === 'function') report('FUNCTION_WRITE', `Cannot assign to function '${node.name}'.`, node);
       } else visit(node, env, null, 0);
     }
-    function visit(node, env, fn, loops) {
+    function visit(node, env, fn, loops, valueRequired = true) {
       if (!node) return;
       switch (node.type) {
         case 'Program':
@@ -64,13 +64,22 @@
           visit(node.initializer, env, fn, loops);
           declare(node, env, 'variable');
           if (node.kind === 'const' && !node.initializer) report('CONST_INIT', 'A constant needs an initializer.', node);
-          if (node.initializer && node.initializer.type === 'Literal' && typeof node.initializer.value === 'string' &&
+          const initializer = unwrap(node.initializer);
+          if (initializer && initializer.type === 'Literal' && typeof initializer.value === 'string' &&
               node.dataType && !['string', 'char'].includes(node.dataType) && !node.pointerDepth) {
             report('TYPE_MISMATCH', `String literal cannot initialize '${node.dataType} ${node.name}'.`, node);
           }
           return;
         }
-        case 'Identifier': use(node, env); return;
+        case 'Identifier': {
+          const symbol = use(node, env);
+          if (symbol && symbol.kind === 'function') report('FUNCTION_VALUE', `Use '${node.name}(...)' to call this function; function values are not supported.`, node);
+          return;
+        }
+        case 'ExpressionStatement': visit(node.expression, env, fn, loops, false); return;
+        case 'GroupingExpression': visit(node.expression, env, fn, loops, valueRequired); return;
+        case 'SequenceExpression':
+          node.expressions.forEach((n, i) => visit(n, env, fn, loops, valueRequired && i === node.expressions.length - 1)); return;
         case 'AssignmentExpression': target(node.left, env); visit(node.right, env, fn, loops); return;
         case 'UpdateExpression': target(node.argument, env); return;
         case 'CallExpression': {
@@ -78,18 +87,24 @@
           const external = callee.type === 'Identifier' && ['printf', 'scanf'].includes(callee.name) && !lookup(env, callee.name);
           if (external) report('EXTERNAL_CALL', `${callee.name} is treated as an external function; its signature is not checked.`, callee, 'info');
           else {
-            visit(node.callee, env, fn, loops);
+            if (callee.type === 'Identifier') use(callee, env);
+            else {
+              visit(node.callee, env, fn, loops);
+              report('NOT_CALLABLE', 'Only a named function can be called.', node);
+            }
             const symbol = bindings.get(callee);
             if (symbol && symbol.kind !== 'function') report('NOT_CALLABLE', `'${callee.name}' is not a function.`, callee);
             if (symbol && symbol.kind === 'function' && symbol.parameters !== node.arguments.length)
               report('ARGUMENT_COUNT', `'${callee.name}' expects ${symbol.parameters} argument(s), received ${node.arguments.length}.`, callee);
+            if (valueRequired && symbol && symbol.kind === 'function' && symbol.dataType === 'void' && !symbol.pointerDepth)
+              report('VOID_VALUE', `'${callee.name}' returns void and cannot be used as a value.`, callee);
           }
           node.arguments.forEach(n => visit(n, env, fn, loops)); return;
         }
         case 'ForStatement': {
           const local = scope(env, 'for');
-          visit(node.initializer, local, fn, loops); visit(node.condition, local, fn, loops);
-          visit(node.update, local, fn, loops); visit(node.body, local, fn, loops + 1); return;
+          visit(node.initializer, local, fn, loops, false); visit(node.condition, local, fn, loops);
+          visit(node.update, local, fn, loops, false); visit(node.body, local, fn, loops + 1); return;
         }
         case 'WhileStatement': case 'DoWhileStatement':
           visit(node.condition, env, fn, loops); visit(node.body, env, fn, loops + 1); return;
@@ -98,8 +113,8 @@
           return;
         case 'ReturnStatement':
           if (!fn) report('RETURN_CONTEXT', 'return must be inside a function.', node);
-          else if (fn.returnType === 'void' && node.argument) report('RETURN_VALUE', 'A void function cannot return a value.', node);
-          else if (fn.returnType !== 'void' && fn.returnType !== 'inferred' && !node.argument) report('RETURN_VALUE', 'This function must return a value.', node);
+          else if (fn.returnType === 'void' && !fn.returnPointerDepth && node.argument) report('RETURN_VALUE', 'A void function cannot return a value.', node);
+          else if ((fn.returnType !== 'void' || fn.returnPointerDepth) && fn.returnType !== 'inferred' && !node.argument) report('RETURN_VALUE', 'This function must return a value.', node);
           visit(node.argument, env, fn, loops); return;
         default: children(node).forEach(n => visit(n, env, fn, loops));
       }
@@ -153,14 +168,18 @@
     // Snapshot operands before later side effects (x + x++, nested calls, compound assignment).
     function snapshot(node) {
       const value = expr(node);
-      if (value.includes('@')) { const saved = temp(); emit('copy', value, '', saved); return saved; }
+      if (/^[A-Za-z_][A-Za-z_0-9]*@\d+$/.test(value)) { const saved = temp(); emit('copy', value, '', saved); return saved; }
       return value;
     }
     function expr(node) {
       if (!node) return '';
       if (optimize && !['Literal', 'Identifier'].includes(node.type)) {
         const value = folded(node);
-        if (value !== null) { changes.push({ rule: 'Constant folding', before: describe(node), after: String(value) }); return String(value); }
+        if (value !== null) {
+          const literal = Object.is(value, -0) ? '-0' : String(value);
+          changes.push({ rule: 'Constant folding', before: describe(node), after: literal });
+          return literal;
+        }
       }
       switch (node.type) {
         case 'Literal': return JSON.stringify(node.value);
@@ -216,6 +235,7 @@
           node.body.filter(n => n.type !== 'FunctionDeclaration').forEach(statement);
           emit('halt');
           node.body.filter(n => n.type === 'FunctionDeclaration').forEach(statement); return;
+        case 'EmptyStatement': return;
         case 'BlockStatement': node.body.forEach(statement); return;
         case 'VariableDeclarationList': node.declarations.forEach(statement); return;
         case 'VariableDeclaration':

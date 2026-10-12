@@ -7,11 +7,10 @@
     if (!node || typeof node !== 'object') return [];
     switch (node.type) {
       case 'Program': return node.body;
-      case 'VariableDeclaration': return [...(node.dimensions || [node.arraySize]).filter(Boolean), node.initializer].filter(Boolean);
+      case 'VariableDeclaration': return [...(node.dimensions || []).filter(Boolean), node.initializer].filter(Boolean);
       case 'VariableDeclarationList': return node.declarations;
       case 'FunctionDeclaration': return [...node.parameters, node.body];
-      case 'Parameter': return (node.dimensions || [node.arraySize]).filter(Boolean);
-      case 'AssignmentStatement': return [node.value];
+      case 'Parameter': return (node.dimensions || []).filter(Boolean);
       case 'AssignmentExpression': return [node.left, node.right];
       case 'PrintStatement': return [node.expression];
       case 'IfStatement': return [node.condition, node.consequent, ...(node.alternate ? [node.alternate] : [])];
@@ -39,13 +38,12 @@
       case 'VariableDeclaration': {
         const prefix = node.dataType || node.kind || '';
         const pointer = '*'.repeat(node.pointerDepth || 0);
-        const array = '[]'.repeat(node.dimensions?.length || (node.arraySize ? 1 : 0));
+        const array = '[]'.repeat(node.dimensions?.length || 0);
         return { title: 'VariableDeclaration', value: `${prefix} ${pointer}${node.name}${array}`.trim() };
       }
       case 'VariableDeclarationList': return { title: 'DeclarationList', value: `${node.declarations.length} variables` };
       case 'FunctionDeclaration': return { title: 'FunctionDeclaration', value: `${'*'.repeat(node.returnPointerDepth || 0)}${node.name}() → ${node.returnType}` };
-      case 'Parameter': return { title: 'Parameter', value: `${node.dataType || 'any'} ${'*'.repeat(node.pointerDepth || 0)}${node.name}${'[]'.repeat(node.dimensions?.length || (node.arraySize ? 1 : 0))}` };
-      case 'AssignmentStatement': return { title: 'Assignment', value: node.name };
+      case 'Parameter': return { title: 'Parameter', value: `${node.dataType || 'any'} ${'*'.repeat(node.pointerDepth || 0)}${node.name}${'[]'.repeat(node.dimensions?.length || 0)}` };
       case 'AssignmentExpression': return { title: 'Assignment', value: node.operator };
       case 'BinaryExpression': return { title: 'BinaryExpression', value: node.operator };
       case 'UnaryExpression': return { title: 'UnaryExpression', value: node.operator };
@@ -348,8 +346,8 @@
       if (type === 'levelorder') {
         const result = [];
         const queue = [this.root];
-        while (queue.length) {
-          const node = queue.shift();
+        for (let index = 0; index < queue.length; index++) {
+          const node = queue[index];
           result.push(node);
           queue.push(...node.children);
         }

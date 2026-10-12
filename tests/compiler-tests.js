@@ -63,6 +63,11 @@ function checkOutput(source, expected) {
   return result;
 }
 const cases = [
+  ['empty statements', 'int i=0; for(;i<3;i++); if(false); else; print(i);', [3]],
+  ['quoted keywords and punctuation', 'function echo(x){return x;} print(echo(")")); print("if"); print("+");', [')','if','+']],
+  ['negative zero folding', 'print(-(0)); print(1 / -(0));', [-0, -Infinity]],
+  ['decimal exponents', 'print(.5 + 1.5e1);', [15.5]],
+  ['discarded void call in for clauses', 'void f(){} for(f();false;f());', []],
   ['arithmetic precedence', 'int x = (4 + 5) * (12 - 2); print(x);', [90]],
   ['while', 'int x=0; while(x<4) x++; print(x);', [4]],
   ['for with continue', 'int total=0; for(int i=0;i<6;i++){if(i==2) continue;total+=i;} print(total);', [13]],
@@ -92,6 +97,12 @@ const cases = [
 ];
 cases.forEach(([name, source, expected]) => test(name, () => checkOutput(source, expected)));
 const errors = [
+  ['function used as value', 'int f(){return 1;}print(f);', 'FUNCTION_VALUE'],
+  ['void result used as value', 'void f(){} int x=f();', 'VOID_VALUE'],
+  ['void result in print', 'void f(){} print((f()));', 'VOID_VALUE'],
+  ['literal called as function', '(1)(2);', 'NOT_CALLABLE'],
+  ['grouped string numeric initializer', 'int x=("hello");', 'TYPE_MISMATCH'],
+  ['void pointer needs return value', 'void *f(){return;}', 'RETURN_VALUE'],
   ['undeclared identifier', 'print(missing);', 'UNDECLARED'],
   ['duplicate declaration', 'int x=1; int x=2;', 'DUPLICATE'],
   ['const assignment', 'const int x=1;x=2;', 'CONST_WRITE'],
@@ -143,5 +154,13 @@ test('all built-in samples compile or explain limitation', () => {
   const fs=require('node:fs'),vm=require('node:vm');const text=fs.readFileSync(require('node:path').join(__dirname,'../app.js'),'utf8');
   const samples=vm.runInNewContext(`(${text.match(/const samples = (\{[\s\S]*?\n  \});/)[1]})`);
   Object.entries(samples).forEach(([name, source])=>{const r=compile(source);if(name==='errors')assert.equal(r.valid,false);else assert.ok(r.valid,`${name}: ${JSON.stringify(r.diagnostics)}`);assert.ok(r.ir||r.limitations.length||!r.valid);});
+});
+test('void pointer return is a value, with memory lowering unavailable', () => {
+  const result = compile('void *f(void *p){return p;}');
+  assert.ok(result.valid); assert.equal(result.ir, null); assert.ok(result.limitations.length);
+});
+test('quoted at sign does not create an unnecessary operand snapshot', () => {
+  const result = compile('print("mail@0" + "!");');
+  assert.equal(result.ir.code.filter(q => q.op === 'copy').length, 0);
 });
 console.log(`ALL ${count} COMPILER TESTS PASSED`);

@@ -52,6 +52,9 @@ function execute(instructions){
   run(0,globals);return output;
 }
 const fixtures=[
+  ['negative zero survives optimized target', 'print(-(0)); print(1 / -(0));', [-0, -Infinity]],
+  ['empty loop body', 'int i=0; for(;i<3;i++); print(i);', [3]],
+  ['punctuation values', 'function echo(x){return x;} print(echo(")")); print("if");', [')','if']],
   ['arithmetic register pressure','int a=3,b=4,c=5,d=6;int left=(a+b)*(c+d);int right=a*c+b*d;print(left+right);',[116]],
   ['shadowed declarations','int x=1;{int x=2;print(x);}print(x);',[2,1]],
   ['branch join','int x=0;if(true)x=3;else x=9;print(x);',[3]],

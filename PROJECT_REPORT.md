@@ -2,11 +2,11 @@
 
 ## 1. Title
 
-**Syntax Tree Visualizer — An Interactive Compiler Teaching Tool**
+**Syntax Tree Visualizer and Compiler Workbench**
 
 ## 2. Abstract
 
-The Syntax Tree Visualizer is a browser-based educational project that demonstrates the front-end stages of a compiler. It accepts a small programming-language input, performs lexical analysis, parses the token stream using a recursive-descent parser, constructs an Abstract Syntax Tree (AST), and displays the tree graphically. The user can zoom, pan, inspect nodes, and animate common tree traversals. The extended workbench also performs scoped semantic checks, generates scalar three-address code and quadruples, folds supported constant expressions, and displays a basic-block control-flow graph. It links front-end structures to intermediate representations without executing the submitted program.
+The Syntax Tree Visualizer is a browser-based educational project that demonstrates compiler stages from lexical analysis through symbolic target generation. It accepts a small programming-language input, performs lexical analysis, parses the token stream using a recursive-descent parser, constructs an Abstract Syntax Tree (AST), and displays the tree graphically. The user can zoom, pan, inspect nodes, and animate common tree traversals. The extended workbench also performs scoped semantic checks, generates scalar three-address code and quadruples, folds supported constant expressions, and displays a basic-block control-flow graph. It also computes liveness and next use, allocates local registers and produces a symbolic target. A separate Grammar Lab computes FIRST/FOLLOW and LL(1) parsing traces. The website does not execute the submitted program.
 
 ## 3. Problem Statement
 
@@ -25,10 +25,12 @@ Compiler data structures such as syntax trees are difficult to understand only t
 - Build lexical scopes and check name resolution, duplicate declarations, constant writes and control contexts.
 - Generate scalar three-address code and quadruples.
 - Show safe-integer literal constant folding and basic-block control flow.
+- Compute liveness and next use and generate virtual target instructions.
+- Compute FIRST/FOLLOW, construct LL(1) tables and trace predictive parsing.
 
 ## 5. Scope
 
-The current project supports inferred, qualified, and typed variable declarations; functions; one-dimensional and multi-dimensional arrays; indexing; simple pointer expressions and dereferenced assignments; arithmetic, logical, bitwise, shift, and conditional expressions; generic calls such as `printf` and `scanf`; if/else chains; while/for/do-while loops; return/break/continue statements; literals; and comments. Common preprocessor lines such as `#include` are ignored before parsing, matching their position before compiler syntax analysis. The extension adds scoped semantic checks, scalar TAC, quadruples, literal constant folding and CFG construction. The syllabus-based expansion adds configurable FIRST/FOLLOW and LL(1) table construction, predictive traces, live-variable analysis, next use and local register allocation to a symbolic target. Complete language standards, memory lowering for arrays/pointers, and native machine-code generation remain outside the scope. See EXTENSION_GUIDE.md for exact pass boundaries.
+The current project supports inferred, qualified, and typed variable declarations; functions; one-dimensional and multi-dimensional arrays; indexing; simple pointer expressions and dereferenced assignments; arithmetic, logical, bitwise, shift, and conditional expressions; generic calls such as `printf` and `scanf`; if/else chains; while/for/do-while loops; return/break/continue statements; literals; and comments. Common preprocessor lines such as `#include` are ignored before parsing, matching their position before compiler syntax analysis. The extension adds scoped semantic checks, scalar TAC, quadruples, literal constant folding and CFG construction. The syllabus-based expansion adds configurable FIRST/FOLLOW and LL(1) table construction, predictive traces, live-variable analysis, next use and local register allocation to a symbolic target. Complete language standards, memory lowering for arrays/pointers, and native machine-code generation remain outside the scope. See [README](README.md#6-supported-language-and-exact-boundaries) for exact pass boundaries.
 
 ## 6. Technologies Used
 
@@ -81,6 +83,18 @@ Implements mouse-wheel zoom, drag-to-pan, fit-to-screen, reset, node selection, 
 
 Walks through the generated AST and collects functions, parameters, and variable declarations. It displays each identifier's name, kind, and initializer or parameter count. This educational extension connects syntax analysis with the next compiler phase.
 
+### 7.9 Semantic and Intermediate-Code Module
+
+Builds lexical scopes, resolves identifier uses and reports implemented semantic errors. Valid scalar input is lowered to TAC/quadruples; supported literal expressions are folded in an independent optimized listing. Labels and branch instructions define a basic-block CFG.
+
+### 7.10 Compiler Backend
+
+Computes fixed-point live-variable sets, records next use and allocates 3, 4 or 6 virtual registers locally per block. Dirty values are saved before eviction, block exits and calls. The backend emits symbolic target instructions, not native machine code.
+
+### 7.11 Grammar Lab
+
+Accepts a separate user-entered grammar, computes FIRST/FOLLOW, builds an LL(1) table and shows stack/input/action traces. Conflicts, left recursion and nonproductive rules block predictive tracing. This grammar does not replace the source parser.
+
 ## 8. Functional Requirements
 
 - The user shall enter source code.
@@ -93,7 +107,10 @@ Walks through the generated AST and collects functions, parameters, and variable
 - The user shall move through a traversal one node at a time.
 - The system shall display node count, tree depth, token count, and parser status.
 - The system shall show declared identifiers in a basic symbol table.
-- The user shall export AST JSON and SVG.
+- The user shall export AST JSON, SVG and compiler analysis JSON.
+- The system shall preserve AST inspection when semantic checks fail and explain unsupported scalar IR features.
+- The system shall display TAC, optimization, CFG, liveness and virtual code for supported input.
+- The user shall inspect and step through independent LL(1) grammar analysis.
 
 ## 9. Non-Functional Requirements
 
@@ -104,21 +121,15 @@ Walks through the generated AST and collects functions, parameters, and variable
 
 ## 10. Data Flow
 
-```text
-Source Code
-    ↓
-Tokenizer / Lexical Analyzer
-    ↓
-Token Stream
-    ↓
-Recursive-Descent Parser
-    ↓
-Abstract Syntax Tree
-    ↓
-Tree Layout Algorithm
-    ↓
-SVG Visualizer + Traversal Animation
-```
+| Input | Processing | Output |
+| --- | --- | --- |
+| Source characters | Tokenizer | Tokens with locations |
+| Tokens | Recursive-descent parser | AST |
+| AST | Layout and SVG rendering | Interactive tree and traversals |
+| AST | Semantic analysis and scalar lowering | Diagnostics, symbol bindings, TAC |
+| AST / TAC | Folding and CFG construction | Optimized TAC and basic blocks |
+| Selected TAC | Data flow and register allocation | Liveness, next use and symbolic target |
+| Independent grammar and input | FIRST/FOLLOW, LL(1) table, predictive parsing | Sets, table, warnings and trace |
 
 ## 11. Important Algorithms
 
@@ -172,6 +183,7 @@ Expected: multiplication appears below addition and is evaluated first structura
 Input:
 
 ```text
+int marks = 78;
 if (marks >= 40) {
   print("Pass");
 } else {
@@ -196,6 +208,7 @@ Expected: error stating that a semicolon is required, including line and column.
 Input:
 
 ```text
+int count = 0;
 while (count < 3) {
   count = count + 1;
 }
@@ -227,7 +240,9 @@ Expected: the preprocessor line is ignored and a valid tree is generated for the
 
 ### Automated Regression Suite
 
-Run `node tests/parser-tests.js` and `node tests/compiler-tests.js`. The suites contain 38 parser checks and 52 compiler checks (90 total). The compiler suite checks both unoptimized and optimized IR with a test-only evaluator, including recursion, loop control and short-circuit side effects. The grammar suite adds 26 checks and the backend suite adds 21 checks, taking the total to 137. Run `node tests/grammar-tests.js` and `node tests/backend-tests.js` as well. Backend fixtures check original/optimized TAC at three register budgets. Browser interaction testing is separate from these checks.
+Run `node tests/run-tests.js` for all 176 core checks (61 tokenizer/parser, 65 compiler, 26 grammar, 24 backend). The compiler and backend suites contain test-only evaluators for known expected results, including recursion, loop control, short-circuit side effects and negative zero. Backend fixtures check original/optimized TAC at three register budgets.
+
+The optional `tests/browser-tests.js` checks real browser interactions, source examples, downloads, grammar traces, responsive layout and blocked clipboard/storage handling. Installation and execution steps are in the [README](README.md#9-tests-and-verification).
 
 ## 13. Advantages
 
@@ -241,7 +256,7 @@ Run `node tests/parser-tests.js` and `node tests/compiler-tests.js`. The suites 
 ## 14. Limitations
 
 - It implements a strong educational C-like subset rather than every rule of full C, C++, or Java.
-- Type checking is limited to a string-literal/numeric-initializer mismatch check; complete type compatibility, definite assignment and all-path return analysis are not implemented.
+- Type checks include valid type specifiers, void-value use and simple string/numeric initializers; complete type compatibility, definite assignment and all-path return analysis are not implemented.
 - TAC supports scalar input. Arrays and pointers retain AST support with an explicit IR limitation message.
 - It does not execute the program.
 - Very large trees initially appear as a fitted overview and can be inspected with zoom and pan.
@@ -257,8 +272,8 @@ Run `node tests/parser-tests.js` and `node tests/compiler-tests.js`. The suites 
 
 ## 16. Conclusion
 
-The project successfully demonstrates the major front-end stages of a compiler in an interactive manner. It combines tokenization, recursive-descent parsing, AST construction, graphical rendering, traversal, and node inspection. It is useful as a practical compiler-design project and as an educational visualization tool.
+The project connects tokenization, parsing and AST visualization to semantic checks, scalar TAC, constant folding, CFG/data-flow analysis and symbolic target generation. Its independent Grammar Lab adds LL(1) construction and predictive traces. Each stage exposes data that can be explained during a Compiler Design demonstration, within the documented teaching-language boundaries.
 
 ## 17. Syllabus-Based Extension
 
-The uploaded BCSE307L syllabus version 1.0 is mapped in `SYLLABUS_MAPPING.md`. The independent Grammar Lab demonstrates FIRST/FOLLOW, LL(1) tables, conflicts and predictive traces (Module 2). Data-flow/next-use views and the symbolic register-machine backend extend Modules 5 and 6. The exact features, bounds, target conventions and missing topics are documented in `EXTENSION_GUIDE.md`. The project does not claim complete coverage of all eight modules.
+The uploaded BCSE307L syllabus version 1.0 is mapped in `SYLLABUS_MAPPING.md`. The independent Grammar Lab demonstrates FIRST/FOLLOW, LL(1) tables, conflicts and predictive traces (Module 2). Data-flow/next-use views and the symbolic register-machine backend extend Modules 5 and 6. The exact features, bounds, target conventions and missing topics are documented in `README.md`. The project does not claim complete coverage of all eight modules.

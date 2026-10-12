@@ -70,7 +70,7 @@ Later compiler phases such as semantic analysis, optimization, intermediate-code
 
 ## 18. How can the project be extended?
 
-The workbench already adds a scoped symbol table, basic semantic checks, scalar intermediate code, constant folding and control-flow graphs. Future extensions include fuller type checking, array/pointer memory lowering, source-to-node mapping and an interpreter.
+The workbench already adds a scoped symbol table, basic semantic checks, scalar intermediate code, constant folding, control-flow/data-flow analysis and virtual target code, plus a separate LL(1) Grammar Lab. Future extensions include fuller type checking, array/pointer memory lowering, source-to-node mapping and an interpreter.
 
 ## 19. Which data structure is used for level-order traversal?
 
@@ -82,7 +82,7 @@ Node highlighting helps the user identify a selected node and understand the ord
 
 ## 21. What is a symbol table?
 
-A symbol table is a compiler data structure that stores information about identifiers, such as their names, types, scopes, and memory locations. This project shows a basic table of functions, parameters, variables, and initializer expressions.
+A symbol table is a compiler data structure that stores information about identifiers, such as their names, types, scopes, and memory locations. The Symbols inspector summarizes declarations and initializers. The Compiler Workbench additionally shows lexical scopes, type annotations and unique IR names used by name resolution.
 
 ## 22. Why does multiplication appear below addition in the AST for `4 + 5 * 2`?
 
@@ -110,7 +110,7 @@ An array initializer becomes an `ArrayExpression`. Access such as `values[i]` be
 
 ## 28. How are assignment operators handled?
 
-The assignment grammar recognizes `=`, `+=`, `-=`, `*=`, `/=`, and `%=`. Assignment is right-associative and only identifiers or indexed array elements are accepted as targets.
+The assignment grammar recognizes `=`, arithmetic compound assignments, and bitwise/shift compound assignments. Assignment is right-associative. Identifiers, indexed expressions and pointer dereferences can be targets, including parenthesized targets. Arrays and pointers are AST-only because memory lowering is not implemented.
 
 ## 29. Does the project parse complete C or Java?
 

@@ -149,17 +149,17 @@
         });
       }
       if (node.type === 'VariableDeclaration') {
-        const array = '[]'.repeat(node.dimensions?.length || (node.arraySize ? 1 : 0));
+        const array = '[]'.repeat(node.dimensions?.length || 0);
         symbols.push({
           name: node.name,
-          kind: `${node.dataType || node.kind || 'variable'}${array}`,
+          kind: `${node.dataType || node.kind || 'variable'}${'*'.repeat(node.pointerDepth || 0)}${array}`,
           value: expressionSummary(node.initializer)
         });
       }
       if (node.type === 'Parameter') {
         symbols.push({
           name: node.name,
-          kind: `parameter · ${node.dataType || 'any'}${'[]'.repeat(node.dimensions?.length || (node.arraySize ? 1 : 0))}`,
+          kind: `parameter · ${node.dataType || 'any'}${'*'.repeat(node.pointerDepth || 0)}${'[]'.repeat(node.dimensions?.length || 0)}`,
           value: '—'
         });
       }
@@ -282,6 +282,7 @@
   function clearAll() {
     visualizer.clear();
     elements.sourceInput.value = '';
+    elements.sampleSelect.value = 'custom';
     elements.emptyState.classList.remove('hidden');
     resetResults();
     currentAst = null;
@@ -327,6 +328,7 @@
       type,
       delay,
       (sequence, currentIndex) => {
+        traversalStep = currentIndex + 1;
         elements.traversalOutput.textContent = sequence
           .map((node, index) => index <= currentIndex ? traversalNodeName(node) : '…')
           .join('  →  ');
@@ -362,17 +364,7 @@
     traversalStep += 1;
   }
 
-  function downloadText(filename, content, mimeType) {
-    const blob = new Blob([content], { type: mimeType });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement('a');
-    anchor.href = url;
-    anchor.download = filename;
-    document.body.appendChild(anchor);
-    anchor.click();
-    anchor.remove();
-    URL.revokeObjectURL(url);
-  }
+  const { downloadText } = SyntaxUI;
 
   function downloadJson() {
     if (!currentAst) {
@@ -398,9 +390,14 @@
       helper.style.opacity = '0';
       document.body.appendChild(helper);
       helper.select();
-      document.execCommand('copy');
-      helper.remove();
-      showMessage('AST JSON copied to the clipboard.', 'success');
+      try {
+        if (!document.execCommand('copy')) throw new Error('Clipboard unavailable');
+        showMessage('AST JSON copied to the clipboard.', 'success');
+      } catch (_) {
+        showMessage('Clipboard access is unavailable. Use Download to save the AST JSON.', 'error');
+      } finally {
+        helper.remove();
+      }
     }
   }
 
@@ -425,6 +422,12 @@
   elements.resetViewBtn.addEventListener('click', () => visualizer.resetView());
   elements.playTraversalBtn.addEventListener('click', playTraversal);
   elements.stepTraversalBtn.addEventListener('click', stepThroughTraversal);
+  elements.traversalSelect.addEventListener('change', () => {
+    visualizer.stopTraversal();
+    traversalStep = 0;
+    stepTraversalType = '';
+    elements.traversalOutput.textContent = 'Traversal order will appear here.';
+  });
   elements.stopTraversalBtn.addEventListener('click', () => {
     visualizer.stopTraversal();
     traversalStep = 0;
@@ -438,7 +441,8 @@
     const dark = document.body.classList.contains('dark');
     elements.themeToggle.querySelector('[aria-hidden="true"]').textContent = dark ? '☀' : '◐';
     elements.themeToggle.setAttribute('aria-label', dark ? 'Switch to light mode' : 'Switch to dark mode');
-    localStorage.setItem('syntax-tree-theme', dark ? 'dark' : 'light');
+    try { localStorage.setItem('syntax-tree-theme', dark ? 'dark' : 'light'); }
+    catch (_) { /* Theme still works when browser storage is unavailable. */ }
   });
 
   document.querySelectorAll('.tab').forEach(tab => {
@@ -446,6 +450,9 @@
   });
 
   function invalidateAnalysis() {
+    elements.sampleSelect.value = 'custom';
+    traversalStep = 0;
+    stepTraversalType = '';
     if (currentAst) {
       visualizer.clear();
       currentAst = null;
@@ -455,6 +462,7 @@
     }
     clearMessage();
     elements.parserStatus.textContent = 'Edited';
+    elements.parserStatus.className = 'status-ready';
     document.dispatchEvent(new CustomEvent('compiler:stale'));
   }
   elements.sourceInput.addEventListener('input', invalidateAnalysis);
@@ -471,7 +479,10 @@
     if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') parseAndRender();
   });
 
-  if (localStorage.getItem('syntax-tree-theme') === 'dark') {
+  let savedTheme = null;
+  try { savedTheme = localStorage.getItem('syntax-tree-theme'); }
+  catch (_) { /* Use the default theme when storage is unavailable. */ }
+  if (savedTheme === 'dark') {
     document.body.classList.add('dark');
     elements.themeToggle.querySelector('[aria-hidden="true"]').textContent = '☀';
     elements.themeToggle.setAttribute('aria-label', 'Switch to light mode');

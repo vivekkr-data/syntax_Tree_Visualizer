@@ -16,6 +16,11 @@ function parse(source) {
 }
 
 const validPrograms = [
+  ['quoted punctuation arguments', 'printf(")", ";", ",", "if", "+", "(");'],
+  ['empty statements and loop bodies', '; for(int i=0;i<3;i++); while(false); if(true); else;'],
+  ['decimal and exponent literals', 'double x=.5, y=5., z=1.25e-2;'],
+  ['type specifier order', 'long unsigned int x; long long int y; long double z;'],
+  ['void pointer declaration', 'void *p; void *identity(void *p){return p;}'],
   ['operator precedence', 'let result = 4 + 5 * 2 - 8 / 2; print(result);'],
   ['logical expressions', 'bool allowed = age >= 18 && active == true || admin;'],
   ['nested if and else-if', 'if (a > b) { if (a > c) print(a); else print(c); } else if (b > c) print(b); else print(c);'],
@@ -43,6 +48,22 @@ const validPrograms = [
 ];
 
 const invalidPrograms = [
+  ['quoted operator is not an operator', 'int x=1 "+" 2;'],
+  ['quoted keyword is not a statement', '"if"(true) print(1);'],
+  ['quoted type is not a declaration', '"int" x=1;'],
+  ['quoted assignment is not an assignment', 'x "=" 1;'],
+  ['hash within code is not a directive', 'int x=1; # hidden junk'],
+  ['raw multiline string', 'print("hello\nworld");'],
+  ['empty character', "char x='';"],
+  ['multicharacter literal', "char x='ab';"],
+  ['unknown escape', 'print("\\q");'],
+  ['nonfinite literal', 'print(1e400);'],
+  ['incomplete exponent', 'print(1e+);'],
+  ['contradictory types', 'int float x;'],
+  ['repeated sign', 'unsigned unsigned x;'],
+  ['void declaration with let', 'let void x;'],
+  ['named void parameter', 'int f(void x){return 1;}'],
+  ['declaration as bare branch', 'if(true) int x=1;'],
   ['missing semicolon', 'let x = 10'],
   ['unclosed block', 'if (x > 0) { print(x);'],
   ['bad for header', 'for (int i = 0 i < 3; i++) print(i);'],
@@ -98,4 +119,15 @@ assert.equal(parse(longExpression).body.length, 1);
 passed += 1;
 console.log('PASS stress: 500-term expression');
 
+const spelling = tokenize('print("a\\nb");')[2];
+assert.equal(spelling.lexeme, '"a\\nb"');
+assert.equal(spelling.literal, 'a\nb');
+assert.equal(tokenize("'\\0'")[0].literal, '\0');
+passed++;
+console.log('PASS tokenizer: raw lexeme and decoded value stay separate');
+assert.equal(tokenize('  #include <stdio.h>\nprint(1);')[0].line, 2);
+assert.equal(parse('int a[2][3];').body[0].dimensions.length, 2);
+assert.equal(Object.hasOwn(parse('int a[2];').body[0], 'arraySize'), false);
+passed++;
+console.log('PASS AST: array dimensions stored once');
 console.log(`ALL ${passed} TESTS PASSED`);
