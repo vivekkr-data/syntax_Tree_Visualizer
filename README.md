@@ -4,7 +4,7 @@ A browser-based **Compiler Design project** built with HTML, CSS and plain JavaS
 
 **Project purpose:** make compiler stages visible so a student can explain what each stage receives, what it does and what it produces.
 
-[Existing Render website](https://syntax-tree-visualizer-fwpv.onrender.com/) · [Project report](PROJECT_REPORT.md) · [Viva questions](VIVA_QUESTIONS.md) · [Course-topic mapping](SYLLABUS_MAPPING.md)
+[Existing Render website](https://syntax-tree-visualizer-fwpv.onrender.com/)
 
 The website generates compilation artifacts; **it does not run the source program or display its runtime output**. Arrays and pointers can be parsed and visualized, but the later code-generation stages support scalar programs only. The Render website may serve an older revision until its deployment updates.
 
