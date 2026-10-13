@@ -12,7 +12,7 @@
     variables: `let length = 12;\nlet width = 8;\nlet area = length * width;\nprint(area);`,
     condition: `let marks = 78;\nif (marks >= 40) {\n  print("Pass");\n} else {\n  print("Fail");\n}`,
     loop: `let count = 0;\nwhile (count < 3) {\n  print(count);\n  count = count + 1;\n}`,
-    advanced: `#include <stdio.h>\n\nint factorial(int n) {\n  if (n <= 1) {\n    return 1;\n  }\n  return n * factorial(n - 1);\n}\n\nint main(void) {\n  int values[5] = {1, 2, 3, 4, 5};\n  int total = 0;\n\n  for (int i = 0; i < 5; i++) {\n    if (values[i] % 2 == 0) {\n      continue;\n    }\n    total += factorial(values[i]);\n  }\n\n  printf("%d", total);\n  return 0;\n}`
+    advanced: `#include <stdio.h>\n\nint factorial(int n) {\n  if (n <= 1) {\n    return 1;\n  }\n  return n * factorial(n - 1);\n}\n\nint main(void) {\n  int values[5] = {1, 2, 3, 4, 5};\n  int total = 0;\n\n  for (int i = 0; i < 5; i++) {\n    if (values[i] % 2 == 0) {\n      continue;\n    }\n    total += factorial(values[i]);\n  }\n\n  printf("%d", total);\n  return 0;\n}`,
   };
 
   const elements = {
@@ -50,7 +50,7 @@
     themeToggle: document.getElementById('themeToggle'),
     downloadJsonBtn: document.getElementById('downloadJsonBtn'),
     copyJsonBtn: document.getElementById('copyJsonBtn'),
-    downloadSvgBtn: document.getElementById('downloadSvgBtn')
+    downloadSvgBtn: document.getElementById('downloadSvgBtn'),
   };
 
   let currentAst = null;
@@ -64,7 +64,9 @@
     elements.edgeLayer,
     elements.nodeLayer,
     showNodeDetails,
-    scale => { elements.zoomLevel.textContent = `${Math.round(scale * 100)}%`; }
+    (scale) => {
+      elements.zoomLevel.textContent = `${Math.round(scale * 100)}%`;
+    },
   );
 
   function parseAndRender() {
@@ -84,19 +86,26 @@
 
       visualizer.render(currentAst);
       elements.emptyState.classList.add('hidden');
-      renderTokens(currentTokens.filter(token => token.type !== 'EOF'));
+      renderTokens(currentTokens.filter((token) => token.type !== 'EOF'));
       elements.astJson.textContent = JSON.stringify(currentAst, null, 2);
       renderSymbolTable(currentAst);
-      document.dispatchEvent(new CustomEvent('compiler:parsed', { detail: { ast: currentAst, source } }));
+      document.dispatchEvent(
+        new CustomEvent('compiler:parsed', { detail: { ast: currentAst, source } }),
+      );
       updateTreeStats();
-      elements.nodeDetails.innerHTML = '<div class="placeholder-copy">Tree generated. Click a node to inspect its properties.</div>';
+      elements.nodeDetails.innerHTML =
+        '<div class="placeholder-copy">Tree generated. Click a node to inspect its properties.</div>';
       elements.traversalOutput.textContent = 'Traversal order will appear here.';
       traversalStep = 0;
       stepTraversalType = '';
-      const overviewTip = visualizer.nodes.length > 45
-        ? ' Large tree fitted as an overview—use + or the mouse wheel to inspect nodes.'
-        : '';
-      showMessage(`Tree generated successfully: ${visualizer.nodes.length} nodes.${overviewTip}`, 'success');
+      const overviewTip =
+        visualizer.nodes.length > 45
+          ? ' Large tree fitted as an overview—use + or the mouse wheel to inspect nodes.'
+          : '';
+      showMessage(
+        `Tree generated successfully: ${visualizer.nodes.length} nodes.${overviewTip}`,
+        'success',
+      );
     } catch (error) {
       currentAst = null;
       currentTokens = [];
@@ -113,7 +122,9 @@
     const maxDepth = visualizer.nodes.reduce((max, node) => Math.max(max, node.depth), 0);
     elements.nodeCount.textContent = String(visualizer.nodes.length);
     elements.treeDepth.textContent = String(maxDepth);
-    elements.tokenStat.textContent = String(currentTokens.filter(token => token.type !== 'EOF').length);
+    elements.tokenStat.textContent = String(
+      currentTokens.filter((token) => token.type !== 'EOF').length,
+    );
     elements.parserStatus.textContent = 'Valid';
     elements.parserStatus.className = 'status-ready';
   }
@@ -122,30 +133,37 @@
     if (!node) return '—';
     if (node.type === 'Literal') return JSON.stringify(node.value);
     if (node.type === 'Identifier') return node.name;
-    if (node.type === 'BinaryExpression') return `${expressionSummary(node.left)} ${node.operator} ${expressionSummary(node.right)}`;
-    if (node.type === 'UnaryExpression') return `${node.operator}${expressionSummary(node.argument)}`;
+    if (node.type === 'BinaryExpression')
+      return `${expressionSummary(node.left)} ${node.operator} ${expressionSummary(node.right)}`;
+    if (node.type === 'UnaryExpression')
+      return `${node.operator}${expressionSummary(node.argument)}`;
     if (node.type === 'GroupingExpression') return `(${expressionSummary(node.expression)})`;
     if (node.type === 'CallExpression') return `${expressionSummary(node.callee)}(...)`;
-    if (node.type === 'ArrayExpression') return `[${node.elements.map(expressionSummary).join(', ')}]`;
-    if (node.type === 'IndexExpression') return `${expressionSummary(node.object)}[${expressionSummary(node.index)}]`;
-    if (node.type === 'AssignmentExpression') return `${expressionSummary(node.left)} ${node.operator} ${expressionSummary(node.right)}`;
-    if (node.type === 'UpdateExpression') return node.prefix
-      ? `${node.operator}${expressionSummary(node.argument)}`
-      : `${expressionSummary(node.argument)}${node.operator}`;
+    if (node.type === 'ArrayExpression')
+      return `[${node.elements.map(expressionSummary).join(', ')}]`;
+    if (node.type === 'IndexExpression')
+      return `${expressionSummary(node.object)}[${expressionSummary(node.index)}]`;
+    if (node.type === 'AssignmentExpression')
+      return `${expressionSummary(node.left)} ${node.operator} ${expressionSummary(node.right)}`;
+    if (node.type === 'UpdateExpression')
+      return node.prefix
+        ? `${node.operator}${expressionSummary(node.argument)}`
+        : `${expressionSummary(node.argument)}${node.operator}`;
     if (node.type === 'ConditionalExpression') return `${expressionSummary(node.test)} ? … : …`;
-    if (node.type === 'SequenceExpression') return node.expressions.map(expressionSummary).join(', ');
+    if (node.type === 'SequenceExpression')
+      return node.expressions.map(expressionSummary).join(', ');
     return node.type;
   }
 
   function renderSymbolTable(ast) {
     const symbols = [];
-    const visit = node => {
+    const visit = (node) => {
       if (!node || typeof node !== 'object') return;
       if (node.type === 'FunctionDeclaration') {
         symbols.push({
           name: node.name,
           kind: `function · ${node.returnType}`,
-          value: `${node.parameters.length} parameter${node.parameters.length === 1 ? '' : 's'}`
+          value: `${node.parameters.length} parameter${node.parameters.length === 1 ? '' : 's'}`,
         });
       }
       if (node.type === 'VariableDeclaration') {
@@ -153,17 +171,17 @@
         symbols.push({
           name: node.name,
           kind: `${node.dataType || node.kind || 'variable'}${'*'.repeat(node.pointerDepth || 0)}${array}`,
-          value: expressionSummary(node.initializer)
+          value: expressionSummary(node.initializer),
         });
       }
       if (node.type === 'Parameter') {
         symbols.push({
           name: node.name,
           kind: `parameter · ${node.dataType || 'any'}${'*'.repeat(node.pointerDepth || 0)}${'[]'.repeat(node.dimensions?.length || 0)}`,
-          value: '—'
+          value: '—',
         });
       }
-      Object.values(node).forEach(value => {
+      Object.values(node).forEach((value) => {
         if (Array.isArray(value)) value.forEach(visit);
         else if (value && typeof value === 'object') visit(value);
       });
@@ -183,7 +201,7 @@
     header.className = 'symbol-row header';
     header.innerHTML = '<span>Name</span><span>Kind</span><span>Initializer</span>';
     elements.symbolTable.appendChild(header);
-    symbols.forEach(symbol => {
+    symbols.forEach((symbol) => {
       const row = document.createElement('div');
       row.className = 'symbol-row';
       const name = document.createElement('code');
@@ -205,7 +223,7 @@
     }
 
     elements.tokenList.innerHTML = '';
-    tokens.forEach(token => {
+    tokens.forEach((token) => {
       const item = document.createElement('div');
       item.className = 'token-item';
       const main = document.createElement('div');
@@ -232,7 +250,7 @@
       ['Type', wrapper.data.type],
       ['Label', label.value || '—'],
       ['Depth', wrapper.depth],
-      ['Children', wrapper.children.length]
+      ['Children', wrapper.children.length],
     ];
 
     Object.entries(wrapper.data).forEach(([key, value]) => {
@@ -260,12 +278,12 @@
   }
 
   function activateTab(tabName) {
-    document.querySelectorAll('.tab').forEach(tab => {
+    document.querySelectorAll('.tab').forEach((tab) => {
       const active = tab.dataset.tab === tabName;
       tab.classList.toggle('active', active);
       tab.setAttribute('aria-selected', String(active));
     });
-    document.querySelectorAll('.tab-content').forEach(panel => panel.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach((panel) => panel.classList.remove('active'));
     document.getElementById(`${tabName}Tab`).classList.add('active');
   }
 
@@ -294,8 +312,10 @@
 
   function resetResults() {
     document.dispatchEvent(new CustomEvent('compiler:reset'));
-    elements.nodeDetails.innerHTML = '<div class="placeholder-copy">Click any syntax-tree node to view its type and properties.</div>';
-    elements.tokenList.innerHTML = '<div class="placeholder-copy">Tokens will appear after parsing.</div>';
+    elements.nodeDetails.innerHTML =
+      '<div class="placeholder-copy">Click any syntax-tree node to view its type and properties.</div>';
+    elements.tokenList.innerHTML =
+      '<div class="placeholder-copy">Tokens will appear after parsing.</div>';
     elements.tokenCount.textContent = '0 tokens';
     elements.symbolTable.className = 'symbol-table placeholder-copy';
     elements.symbolTable.textContent = 'Symbols will appear after parsing.';
@@ -323,19 +343,22 @@
     const type = elements.traversalSelect.value;
     traversalStep = 0;
     stepTraversalType = type;
-    const delay = Number(elements.speedRange.max) + Number(elements.speedRange.min) - Number(elements.speedRange.value);
+    const delay =
+      Number(elements.speedRange.max) +
+      Number(elements.speedRange.min) -
+      Number(elements.speedRange.value);
     visualizer.animateTraversal(
       type,
       delay,
       (sequence, currentIndex) => {
         traversalStep = currentIndex + 1;
         elements.traversalOutput.textContent = sequence
-          .map((node, index) => index <= currentIndex ? traversalNodeName(node) : '…')
+          .map((node, index) => (index <= currentIndex ? traversalNodeName(node) : '…'))
           .join('  →  ');
       },
-      sequence => {
+      (sequence) => {
         elements.traversalOutput.textContent = sequence.map(traversalNodeName).join('  →  ');
-      }
+      },
     );
   }
 
@@ -412,7 +435,7 @@
 
   elements.visualizeBtn.addEventListener('click', parseAndRender);
   elements.clearBtn.addEventListener('click', clearAll);
-  elements.sampleSelect.addEventListener('change', event => {
+  elements.sampleSelect.addEventListener('change', (event) => {
     elements.sourceInput.value = samples[event.target.value];
     parseAndRender();
   });
@@ -440,12 +463,18 @@
     document.body.classList.toggle('dark');
     const dark = document.body.classList.contains('dark');
     elements.themeToggle.querySelector('[aria-hidden="true"]').textContent = dark ? '☀' : '◐';
-    elements.themeToggle.setAttribute('aria-label', dark ? 'Switch to light mode' : 'Switch to dark mode');
-    try { localStorage.setItem('syntax-tree-theme', dark ? 'dark' : 'light'); }
-    catch (_) { /* Theme still works when browser storage is unavailable. */ }
+    elements.themeToggle.setAttribute(
+      'aria-label',
+      dark ? 'Switch to light mode' : 'Switch to dark mode',
+    );
+    try {
+      localStorage.setItem('syntax-tree-theme', dark ? 'dark' : 'light');
+    } catch (_) {
+      /* Theme still works when browser storage is unavailable. */
+    }
   });
 
-  document.querySelectorAll('.tab').forEach(tab => {
+  document.querySelectorAll('.tab').forEach((tab) => {
     tab.addEventListener('click', () => activateTab(tab.dataset.tab));
   });
 
@@ -467,12 +496,13 @@
   }
   elements.sourceInput.addEventListener('input', invalidateAnalysis);
 
-  elements.sourceInput.addEventListener('keydown', event => {
+  elements.sourceInput.addEventListener('keydown', (event) => {
     if (event.key === 'Tab') {
       event.preventDefault();
       const start = elements.sourceInput.selectionStart;
       const end = elements.sourceInput.selectionEnd;
-      elements.sourceInput.value = elements.sourceInput.value.slice(0, start) + '  ' + elements.sourceInput.value.slice(end);
+      elements.sourceInput.value =
+        elements.sourceInput.value.slice(0, start) + '  ' + elements.sourceInput.value.slice(end);
       elements.sourceInput.selectionStart = elements.sourceInput.selectionEnd = start + 2;
       invalidateAnalysis();
     }
@@ -480,8 +510,11 @@
   });
 
   let savedTheme = null;
-  try { savedTheme = localStorage.getItem('syntax-tree-theme'); }
-  catch (_) { /* Use the default theme when storage is unavailable. */ }
+  try {
+    savedTheme = localStorage.getItem('syntax-tree-theme');
+  } catch (_) {
+    /* Use the default theme when storage is unavailable. */
+  }
   if (savedTheme === 'dark') {
     document.body.classList.add('dark');
     elements.themeToggle.querySelector('[aria-hidden="true"]').textContent = '☀';

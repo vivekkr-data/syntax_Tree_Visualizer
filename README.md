@@ -50,6 +50,30 @@ Visit [http://localhost:8000](http://localhost:8000). This server only serves fi
 
 ## 2. Understand the interface
 
+### Project flow diagram
+
+Read this from top to bottom. The source parser has a fixed grammar; the editable Grammar Lab is a separate learning tool.
+
+```mermaid
+flowchart TD
+    Source[Source code] --> Lexer[Lexical analyzer]
+    Lexer --> Tokens[Tokens with locations]
+    Tokens --> Parser[Recursive-descent parser]
+    Parser --> AST[Abstract Syntax Tree]
+    Lexer -->|Invalid character or literal| Error[Show error and clear old results]
+    Parser -->|Invalid syntax| Error
+    AST --> Tree[Tree view, traversals and AST JSON]
+    AST --> Semantics[Names, scopes and semantic checks]
+    Semantics --> Allowed{Valid scalar program?}
+    Allowed -->|No| Diagnostics[Show diagnostics or memory-lowering limitation]
+    Allowed -->|Yes| TAC[Original and constant-folded TAC]
+    TAC --> CFG[CFG from original TAC]
+    TAC --> Backend[Selected TAC: liveness and register allocation]
+    Backend --> Target[Symbolic target instructions]
+```
+
+The tree remains available when a later compiler stage is blocked. Code Generation lets you choose which TAC listing its data-flow and target views use.
+
 | Area | What to do | What it shows |
 | --- | --- | --- |
 | Source Code | Choose an example or type code; select **Analyze Program** | Input to the tokenizer and parser |
@@ -96,6 +120,18 @@ Examples: `int` is a keyword, `result` is an identifier, `4` is a number, `+` is
 ### Step 2: parsing and AST construction
 
 Multiplication has higher precedence than addition, so the initializer is `4 + (5 * 2)`, with `+` above `*` in the AST. The Program contains a VariableDeclaration and a PrintStatement. The displayed tree has **9 nodes**, maximum depth **4** with the root at depth 0, and **14 visible tokens**.
+
+The initializer's expression subtree is:
+
+```mermaid
+flowchart TD
+    Add["+"] --> Four["4"]
+    Add --> Multiply["*"]
+    Multiply --> Five["5"]
+    Multiply --> Two["2"]
+```
+
+Read the multiplication subtree first: `5 * 2 = 10`, then `4 + 10 = 14`. This picture shows only the initializer; the full tree also contains the declaration and print statement.
 
 The AST omits semicolons, delimiter tokens and grammar-expansion nodes. Explicit parentheses are retained as GroupingExpression nodes; this is an educational AST, not a concrete parse tree.
 
@@ -173,6 +209,8 @@ Each lexical scope has a name map and a parent scope. Lookup searches the curren
 
 Implemented diagnostics include undeclared names, same-scope duplicates, missing constant initializers, constant/function-name writes, calls to nonfunctions, incorrect argument counts, unsupported function values, use of a known void-returning call as a value, nested functions, misplaced return/break/continue, and basic string-literal-to-numeric initialization errors.
 
+Array-size expressions in both variables and function parameters are checked for declared names. Parameters are introduced from left to right, so `int sum(int n, int values[n])` can resolve `n`; an undeclared size name is an error. Arrays still remain outside TAC generation.
+
 A syntax-valid program may still have semantic errors. In that case its AST remains visible, but TAC is blocked. Passing these checks does not imply complete C type correctness.
 
 ### 4.5 TAC generation — `SyntaxCompiler.generate(...)`
@@ -245,6 +283,21 @@ T_tail -> * F T_tail | ε
 F -> ( E ) | id
 ```
 
+```mermaid
+flowchart TD
+    Rules[Grammar productions] --> Sets[FIRST and FOLLOW sets]
+    Sets --> Table[Prediction table and grammar checks]
+    Table --> Valid{"Ready for LL(1) parsing?"}
+    Valid -->|No| Explain[Show conflicts, recursion or nonproductive rules]
+    Valid -->|Yes| Trace[Read stack top and next input token]
+    Trace --> Action{Parsing action}
+    Action -->|Expand or match| Trace
+    Action -->|Both end markers| Accept[Accept]
+    Action -->|Mismatch or missing rule| Reject[Reject with reason]
+```
+
+A bounded trace stops with a message if its row budget is exhausted. It does not report that limit as a successful parse.
+
 The first left-hand side is the start symbol. All left-hand-side names are nonterminals; other symbols are terminals. `$` is an automatically added end marker and must not be entered. Literal pipe terminals and grammar comments are not supported.
 
 FIRST and FOLLOW are computed by repeated set propagation. For `A → α`, the table selects that production under FIRST(α), excluding ε; if α is nullable, it also uses FOLLOW(A). In the example, FIRST(E) is `{ (, id }` and FOLLOW(E) is `{ $, ) }`.
@@ -285,7 +338,7 @@ Important teaching-language rules:
 
 Not supported: complete C/C++/Java syntax, macro expansion, hexadecimal numeric forms and numeric suffixes, structures/classes, switch/case, goto, function prototypes, function pointers, native compilation or source execution.
 
-Responsiveness limits: backend analysis allows 2,000 TAC instructions; Grammar Lab allows 20,000 characters, 160 alternatives, 50 nonterminals, 100 terminals, 50 symbols per alternative and 250 input tokens. Predictive tracing is bounded. Extremely deep source nesting can exceed the browser's recursion limit; use compact classroom examples.
+Responsiveness limits: backend analysis allows 2,000 TAC instructions; Grammar Lab allows 20,000 characters, 160 alternatives, 50 nonterminals, 100 terminals, 50 symbols per alternative and 250 input tokens. Predictive tracing displays at most 1,000 rows by default, including any step-limit message. Extremely deep source nesting can exceed the browser's recursion limit; use compact classroom examples.
 
 ## 7. Faculty demonstration sequence
 
@@ -328,7 +381,33 @@ Read the implementation in this order. File names describe their responsibility;
 | [app-controller.js](app-controller.js) | parseAndRender, invalidateAnalysis | Examples, editor, AST inspector and traversal events |
 | [compiler-workbench-ui.js](compiler-workbench-ui.js) | render, renderBackend, graph | Compiler panels and report export |
 | [grammar-lab-ui.js](grammar-lab-ui.js) | analyze, renderTrace | Grammar editor and trace controls |
-| [tests/](tests/) | run-all-tests.js; separate suites | Core regressions and optional browser integration checks |
+| [tests/run-all-tests.js](tests/run-all-tests.js) | Runs the four core suites | One command for dependency-free verification |
+| [tests/lexical-and-syntax-tests.js](tests/lexical-and-syntax-tests.js) | Tokenizer/parser fixtures | Checks tokens, precedence, declarations and syntax errors |
+| [tests/compiler-pipeline-tests.js](tests/compiler-pipeline-tests.js) | Semantic, TAC and CFG fixtures | Checks diagnostics and original/optimized code behavior |
+| [tests/ll1-grammar-tests.js](tests/ll1-grammar-tests.js) | Grammar analysis and trace fixtures | Checks sets, conflicts, accepted/rejected inputs and limits |
+| [tests/compiler-backend-tests.js](tests/compiler-backend-tests.js) | Target evaluator and allocation fixtures | Checks generated instructions at each register count |
+| [tests/browser-integration-tests.js](tests/browser-integration-tests.js) | Playwright browser checks | Checks buttons, panels, exports, error recovery and mobile layout |
+
+### What happens when Analyze Program is clicked?
+
+1. `app-controller.js` reads the editor and calls `Tokenizer.tokenize()`.
+2. `Parser.parse()` converts the tokens into a Program AST. If these first two stages fail, the controller shows the error and clears stale results.
+3. The controller gives the AST to the visualizer and fills the token, symbol-summary and JSON views.
+4. It sends the `compiler:parsed` event with the same AST and source.
+5. `compiler-workbench-ui.js` calls `SyntaxCompiler.compile()`. Semantic errors or unsupported memory features stop code generation with an explanation.
+6. For valid scalar input, the workbench displays original/optimized TAC and the original TAC's CFG. `SyntaxBackend.generate()` computes data flow and target instructions for the selected TAC and register count.
+7. Editing the source clears the old results. Analyze again to display data for the new input.
+
+### How to divide the explanation among the team
+
+| Part | Read these files | Explain using the interface |
+| --- | --- | --- |
+| Input and parsing | Lexical analyzer, syntax parser | Token fields, precedence and how an AST node is created |
+| Tree and interaction | Tree visualizer, app controller | Layout, node inspection, traversal and source editing |
+| Compiler stages | Compiler pipeline, compiler backend, workbench UI | Scope lookup, TAC, folding, CFG, liveness and registers |
+| Grammar Lab and verification | LL(1) analyzer, Grammar Lab UI, tests | FIRST/FOLLOW, prediction table, trace and known test results |
+
+For each part, explain **input → algorithm → output**, then show one valid example and one rejected or unsupported case. Read the relevant function after following its example in the browser.
 
 `app-controller.js` sends `compiler:parsed` with the AST/source; `compiler-workbench-ui.js` listens and runs compilation. Reset/stale events clear the workbench. Deferred scripts load in dependency order; compiler listeners are installed before the app's initial analysis.
 
@@ -355,9 +434,9 @@ node tests/ll1-grammar-tests.js
 node tests/compiler-backend-tests.js
 ```
 
-The core suites contain **176 named checks**: 61 tokenizer/parser, 65 compiler, 26 grammar and 24 backend. Backend behavior fixtures run both original and optimized TAC with all three register counts. Test-only evaluators compare known results for arithmetic, branches, short circuits, loops, recursion, argument order and globals. These evaluators are not loaded by `index.html`.
+The core suites contain **183 named checks**: 61 tokenizer/parser, 68 compiler, 30 grammar and 24 backend. Backend behavior fixtures run both original and optimized TAC with all three register counts. Test-only evaluators compare known results for arithmetic, branches, short circuits, loops, recursion, argument order and globals. These evaluators are not loaded by `index.html`.
 
-Regressions cover quoted punctuation/keywords, exact lexemes, malformed literals/types, empty loop bodies, void/function misuse, negative zero during folding, array/pointer limitations and scope resolution. The grammar suite checks nullable rules, conflicts, recursion, rejected input and termination bounds.
+Regressions cover quoted punctuation/keywords, exact lexemes, malformed literals/types, empty loop bodies, void/function misuse, negative zero during folding, array/pointer limitations, parameter-dimension name checks and scope resolution. The grammar suite checks nullable rules, conflicts, recursion, rejected input and termination bounds.
 
 Optional browser checks require Playwright and its Chromium browser:
 

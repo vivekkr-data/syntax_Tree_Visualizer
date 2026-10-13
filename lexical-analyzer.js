@@ -8,21 +8,74 @@
     KEYWORD: 'KEYWORD',
     OPERATOR: 'OPERATOR',
     PUNCTUATION: 'PUNCTUATION',
-    EOF: 'EOF'
+    EOF: 'EOF',
   });
 
   const KEYWORDS = new Set([
-    'let', 'var', 'const', 'int', 'float', 'double', 'char', 'string', 'bool', 'void',
-    'short', 'long', 'signed', 'unsigned',
-    'function', 'print', 'if', 'else', 'while', 'for', 'do', 'return', 'break',
-    'continue', 'true', 'false'
+    'let',
+    'var',
+    'const',
+    'int',
+    'float',
+    'double',
+    'char',
+    'string',
+    'bool',
+    'void',
+    'short',
+    'long',
+    'signed',
+    'unsigned',
+    'function',
+    'print',
+    'if',
+    'else',
+    'while',
+    'for',
+    'do',
+    'return',
+    'break',
+    'continue',
+    'true',
+    'false',
   ]);
   const TWO_CHAR_OPERATORS = new Set([
-    '==', '!=', '<=', '>=', '&&', '||', '++', '--', '+=', '-=', '*=', '/=', '%=',
-    '<<', '>>', '&=', '|=', '^='
+    '==',
+    '!=',
+    '<=',
+    '>=',
+    '&&',
+    '||',
+    '++',
+    '--',
+    '+=',
+    '-=',
+    '*=',
+    '/=',
+    '%=',
+    '<<',
+    '>>',
+    '&=',
+    '|=',
+    '^=',
   ]);
   const THREE_CHAR_OPERATORS = new Set(['<<=', '>>=']);
-  const ONE_CHAR_OPERATORS = new Set(['+', '-', '*', '/', '%', '=', '!', '<', '>', '&', '|', '^', '~', '?']);
+  const ONE_CHAR_OPERATORS = new Set([
+    '+',
+    '-',
+    '*',
+    '/',
+    '%',
+    '=',
+    '!',
+    '<',
+    '>',
+    '&',
+    '|',
+    '^',
+    '~',
+    '?',
+  ]);
   const PUNCTUATION = new Set(['(', ')', '{', '}', '[', ']', ';', ',', ':']);
 
   class TokenizerError extends Error {
@@ -62,7 +115,12 @@
       // Ignoring the complete line lets common C examples start with #include.
       if (char === '#') {
         const linePrefix = this.source.slice(this.current - startColumn, this.current - 1);
-        if (linePrefix.trim()) throw new TokenizerError('A preprocessor directive must start a line', startLine, startColumn);
+        if (linePrefix.trim())
+          throw new TokenizerError(
+            'A preprocessor directive must start a line',
+            startLine,
+            startColumn,
+          );
         while (this.peek() !== '\n' && !this.isAtEnd()) this.advance();
         return;
       }
@@ -97,7 +155,9 @@
       if (THREE_CHAR_OPERATORS.has(triple)) {
         this.advance();
         this.advance();
-        this.tokens.push(this.makeToken(TokenType.OPERATOR, triple, triple, startLine, startColumn));
+        this.tokens.push(
+          this.makeToken(TokenType.OPERATOR, triple, triple, startLine, startColumn),
+        );
         return;
       }
 
@@ -145,10 +205,12 @@
       if (/[eE]/.test(this.peek())) {
         value += this.advance();
         if (['+', '-'].includes(this.peek())) value += this.advance();
-        if (!/\d/.test(this.peek())) throw new TokenizerError('Expected digits after exponent', line, column);
+        if (!/\d/.test(this.peek()))
+          throw new TokenizerError('Expected digits after exponent', line, column);
         while (/\d/.test(this.peek())) value += this.advance();
       }
-      if (!Number.isFinite(Number(value))) throw new TokenizerError('Number is outside the finite numeric range', line, column);
+      if (!Number.isFinite(Number(value)))
+        throw new TokenizerError('Number is outside the finite numeric range', line, column);
       this.tokens.push(this.makeToken(TokenType.NUMBER, value, Number(value), line, column));
     }
 
@@ -163,13 +225,24 @@
       const start = this.current - 1;
       let value = '';
       while (!this.isAtEnd() && this.peek() !== quote) {
-        if (['\n', '\r'].includes(this.peek())) throw new TokenizerError('Unterminated string or character literal', line, column);
+        if (['\n', '\r'].includes(this.peek()))
+          throw new TokenizerError('Unterminated string or character literal', line, column);
         if (this.peek() === '\\') {
           this.advance();
-          if (this.isAtEnd() || ['\n', '\r'].includes(this.peek())) throw new TokenizerError('Unterminated escape sequence', line, column);
+          if (this.isAtEnd() || ['\n', '\r'].includes(this.peek()))
+            throw new TokenizerError('Unterminated escape sequence', line, column);
           const escaped = this.advance();
-          const replacements = { n: '\n', t: '\t', r: '\r', '0': '\0', '"': '"', "'": "'", '\\': '\\' };
-          if (!Object.hasOwn(replacements, escaped)) throw new TokenizerError(`Unsupported escape sequence \\${escaped}`, line, column);
+          const replacements = {
+            n: '\n',
+            t: '\t',
+            r: '\r',
+            0: '\0',
+            '"': '"',
+            "'": "'",
+            '\\': '\\',
+          };
+          if (!Object.hasOwn(replacements, escaped))
+            throw new TokenizerError(`Unsupported escape sequence \\${escaped}`, line, column);
           value += replacements[escaped];
         } else {
           value += this.advance();
@@ -178,9 +251,22 @@
 
       if (this.isAtEnd()) throw new TokenizerError('Unterminated string', line, column);
       this.advance();
-      if (quote === "'" && [...value].length !== 1) throw new TokenizerError('A character literal must contain exactly one character', line, column);
+      if (quote === "'" && [...value].length !== 1)
+        throw new TokenizerError(
+          'A character literal must contain exactly one character',
+          line,
+          column,
+        );
       // Keep source spelling separate from the decoded value. Quoted punctuation is never syntax.
-      this.tokens.push(this.makeToken(TokenType.STRING, this.source.slice(start, this.current), value, line, column));
+      this.tokens.push(
+        this.makeToken(
+          TokenType.STRING,
+          this.source.slice(start, this.current),
+          value,
+          line,
+          column,
+        ),
+      );
     }
 
     makeToken(type, lexeme, literal, line, column) {
@@ -198,9 +284,15 @@
       return char;
     }
 
-    peek() { return this.isAtEnd() ? '\0' : this.source[this.current]; }
-    peekNext() { return this.current + 1 >= this.source.length ? '\0' : this.source[this.current + 1]; }
-    isAtEnd() { return this.current >= this.source.length; }
+    peek() {
+      return this.isAtEnd() ? '\0' : this.source[this.current];
+    }
+    peekNext() {
+      return this.current + 1 >= this.source.length ? '\0' : this.source[this.current + 1];
+    }
+    isAtEnd() {
+      return this.current >= this.source.length;
+    }
   }
 
   global.SyntaxTokenizer = { Tokenizer, TokenizerError, TokenType };

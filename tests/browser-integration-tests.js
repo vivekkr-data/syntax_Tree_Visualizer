@@ -10,30 +10,43 @@ let count = 0;
 
 async function main() {
   const server = http.createServer(async (request, response) => {
-    const name = request.url.split('?')[0] === '/' ? 'index.html' : request.url.split('?')[0].slice(1);
-    if (!/^[a-zA-Z0-9.-]+$/.test(name)) { response.writeHead(404).end(); return; }
+    const name =
+      request.url.split('?')[0] === '/' ? 'index.html' : request.url.split('?')[0].slice(1);
+    if (!/^[a-zA-Z0-9.-]+$/.test(name)) {
+      response.writeHead(404).end();
+      return;
+    }
     try {
       const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css' };
       response.setHeader('Content-Type', types[path.extname(name)] || 'text/plain');
       response.end(await fs.readFile(path.join(root, name)));
-    } catch (_) { response.writeHead(404).end(); }
+    } catch (_) {
+      response.writeHead(404).end();
+    }
   });
-  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
   let browser;
   try {
-    browser = await chromium.launch({ headless: true, executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE || undefined });
+    browser = await chromium.launch({
+      headless: true,
+      executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE || undefined,
+    });
     const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
     const page = await context.newPage();
     const errors = [];
-    page.on('pageerror', error => errors.push(error.message));
+    page.on('pageerror', (error) => errors.push(error.message));
     const url = `http://127.0.0.1:${server.address().port}`;
-    const text = id => page.locator(`#${id}`).innerText();
-    const test = async (name, run) => { await run(); count++; console.log(`PASS browser: ${name}`); };
-    const source = async value => {
+    const text = (id) => page.locator(`#${id}`).innerText();
+    const test = async (name, run) => {
+      await run();
+      count++;
+      console.log(`PASS browser: ${name}`);
+    };
+    const source = async (value) => {
       await page.locator('#sourceInput').fill(value);
       await page.locator('#visualizeBtn').click();
     };
-    const download = async id => {
+    const download = async (id) => {
       const pending = page.waitForEvent('download');
       await page.locator(`#${id}`).click();
       return fs.readFile(await (await pending).path(), 'utf8');
@@ -43,15 +56,26 @@ async function main() {
       assert.equal(await text('parserStatus'), 'Valid');
       assert.match(await text('compilerSummary'), /Semantic checks passed/);
       assert.match(await text('grammarSummary'), /LL\(1\) table ready/);
-      assert.ok(await page.locator('.node-group').count() > 0);
+      assert.ok((await page.locator('.node-group').count()) > 0);
     });
     await test('every built-in source example', async () => {
-      const samples = await page.locator('#sampleSelect option').evaluateAll(options => options.map(o => o.value).filter(v => v !== 'custom'));
+      const samples = await page
+        .locator('#sampleSelect option')
+        .evaluateAll((options) => options.map((o) => o.value).filter((v) => v !== 'custom'));
       for (const sample of samples) {
         await page.locator('#sampleSelect').selectOption(sample);
         assert.equal(await text('parserStatus'), 'Valid', sample);
-        assert.match(await text('compilerSummary'), sample === 'errors' ? /4 semantic error/ : sample === 'advanced' ? /outside the scalar TAC subset/ : /Semantic checks passed/, sample);
-        if (!['errors', 'advanced'].includes(sample)) assert.match(await text('backendSummary'), /target instructions/);
+        assert.match(
+          await text('compilerSummary'),
+          sample === 'errors'
+            ? /4 semantic error/
+            : sample === 'advanced'
+              ? /outside the scalar TAC subset/
+              : /Semantic checks passed/,
+          sample,
+        );
+        if (!['errors', 'advanced'].includes(sample))
+          assert.match(await text('backendSummary'), /target instructions/);
       }
     });
     await test('token spelling, node click and keyboard selection', async () => {
@@ -74,7 +98,9 @@ async function main() {
       await page.locator('#treeSvg').scrollIntoViewIfNeeded();
       const box = await page.locator('#treeSvg').boundingBox();
       await page.mouse.move(box.x + box.width - 30, box.y + box.height / 2);
-      await page.mouse.down(); await page.mouse.move(box.x + box.width - 80, box.y + box.height / 2 - 30); await page.mouse.up();
+      await page.mouse.down();
+      await page.mouse.move(box.x + box.width - 80, box.y + box.height / 2 - 30);
+      await page.mouse.up();
       assert.notEqual(await page.locator('#viewportGroup').getAttribute('transform'), before);
       await page.locator('#fitBtn').click();
       assert.ok(Number.parseFloat(await text('zoomLevel')) > 0);
@@ -87,7 +113,9 @@ async function main() {
       }
       await page.locator('#speedRange').fill('1400');
       await page.locator('#playTraversalBtn').click();
-      await page.waitForFunction(() => document.getElementById('traversalOutput').textContent.includes('→'));
+      await page.waitForFunction(() =>
+        document.getElementById('traversalOutput').textContent.includes('→'),
+      );
       await page.locator('#stopTraversalBtn').click();
       assert.equal(await page.locator('.traversing').count(), 0);
     });
@@ -119,23 +147,30 @@ async function main() {
       assert.equal(await text('parserStatus'), 'Error');
       assert.equal(await page.locator('.node-group').count(), 0);
       await page.locator('#sampleSelect').selectOption('errors');
-      assert.ok(await page.locator('.node-group').count() > 0);
+      assert.ok((await page.locator('.node-group').count()) > 0);
       await page.locator('#semanticsButton').click();
       await page.locator('#diagnostics button').first().click();
-      assert.equal(await page.locator('#sourceInput').evaluate(el => el.selectionEnd - el.selectionStart), 1);
+      assert.equal(
+        await page.locator('#sourceInput').evaluate((el) => el.selectionEnd - el.selectionStart),
+        1,
+      );
     });
     await test('stage tabs and all backend settings', async () => {
       await page.locator('#sampleSelect').selectOption('registers');
-      await page.locator('#semanticsButton').focus(); await page.keyboard.press('ArrowRight');
+      await page.locator('#semanticsButton').focus();
+      await page.keyboard.press('ArrowRight');
       assert.equal(await page.locator('#irButton').getAttribute('aria-selected'), 'true');
-      for (const tab of ['optimization', 'cfg', 'backend']) await page.locator(`#${tab}Button`).click();
-      for (const mode of ['ir', 'optimized']) for (const registers of ['3', '4', '6']) {
-        await page.locator('#backendSource').selectOption(mode);
-        await page.locator('#registerCount').selectOption(registers);
-        assert.match(await text('backendSummary'), new RegExp(`^${registers} registers`));
-        const report = JSON.parse(await download('downloadReportBtn'));
-        assert.equal(report.backend.input, mode); assert.equal(report.backend.registerCount, Number(registers));
-      }
+      for (const tab of ['optimization', 'cfg', 'backend'])
+        await page.locator(`#${tab}Button`).click();
+      for (const mode of ['ir', 'optimized'])
+        for (const registers of ['3', '4', '6']) {
+          await page.locator('#backendSource').selectOption(mode);
+          await page.locator('#registerCount').selectOption(registers);
+          assert.match(await text('backendSummary'), new RegExp(`^${registers} registers`));
+          const report = JSON.parse(await download('downloadReportBtn'));
+          assert.equal(report.backend.input, mode);
+          assert.equal(report.backend.registerCount, Number(registers));
+        }
     });
     await test('grammar acceptance, rejection, conflicts and reset', async () => {
       await page.locator('#grammarSample').selectOption('expression');
@@ -146,7 +181,8 @@ async function main() {
       assert.match(await text('traceStatus'), /Showing 1/);
       await page.locator('#grammarTokens').fill('id + * id');
       assert.ok(await page.locator('#grammarRunBtn').isDisabled());
-      await page.locator('#analyzeGrammarBtn').click(); await page.locator('#grammarRunBtn').click();
+      await page.locator('#analyzeGrammarBtn').click();
+      await page.locator('#grammarRunBtn').click();
       assert.match(await text('traceStatus'), /rejected/);
       for (const sample of ['conflict', 'recursive']) {
         await page.locator('#grammarSample').selectOption(sample);
@@ -154,14 +190,16 @@ async function main() {
         assert.ok(await page.locator('#grammarStepBtn').isDisabled());
       }
       await page.locator('#grammarSample').selectOption('nullable');
-      await page.locator('#grammarTokens').fill(''); await page.locator('#analyzeGrammarBtn').click(); await page.locator('#grammarRunBtn').click();
+      await page.locator('#grammarTokens').fill('');
+      await page.locator('#analyzeGrammarBtn').click();
+      await page.locator('#grammarRunBtn').click();
       assert.match(await text('traceStatus'), /accepted/);
     });
     await test('theme persists and clear resets the source workbench', async () => {
       await page.locator('#themeToggle').click();
-      assert.ok(await page.locator('body').evaluate(el => el.classList.contains('dark')));
+      assert.ok(await page.locator('body').evaluate((el) => el.classList.contains('dark')));
       await page.reload();
-      assert.ok(await page.locator('body').evaluate(el => el.classList.contains('dark')));
+      assert.ok(await page.locator('body').evaluate((el) => el.classList.contains('dark')));
       await page.locator('#clearBtn').click();
       assert.equal(await page.locator('#sourceInput').inputValue(), '');
       assert.equal(await text('nodeCount'), '0');
@@ -172,19 +210,31 @@ async function main() {
       await context.grantPermissions(['clipboard-read', 'clipboard-write']);
       await page.locator('[data-tab="ast"]').click();
       await page.locator('#copyJsonBtn').click();
-      await page.waitForFunction(() => /copied|Clipboard access is unavailable/.test(document.getElementById('messageBox').textContent));
+      await page.waitForFunction(() =>
+        /copied|Clipboard access is unavailable/.test(
+          document.getElementById('messageBox').textContent,
+        ),
+      );
       assert.match(await text('messageBox'), /copied/);
       const copied = JSON.parse(await page.evaluate(() => navigator.clipboard.readText()));
       assert.equal(copied.body[0].expression.value, 1);
     });
     await test('blocked clipboard reports failure honestly', async () => {
-      await source('print(1);'); await page.locator('[data-tab="ast"]').click();
+      await source('print(1);');
+      await page.locator('[data-tab="ast"]').click();
       await page.evaluate(() => {
-        Object.defineProperty(navigator, 'clipboard', { value: { writeText: () => Promise.reject(new Error('denied')) }, configurable: true });
+        Object.defineProperty(navigator, 'clipboard', {
+          value: { writeText: () => Promise.reject(new Error('denied')) },
+          configurable: true,
+        });
         document.execCommand = () => false;
       });
       await page.locator('#copyJsonBtn').click();
-      await page.waitForFunction(() => /copied|Clipboard access is unavailable/.test(document.getElementById('messageBox').textContent));
+      await page.waitForFunction(() =>
+        /copied|Clipboard access is unavailable/.test(
+          document.getElementById('messageBox').textContent,
+        ),
+      );
       assert.match(await text('messageBox'), /Clipboard access is unavailable/);
     });
     await test('mobile layout fits and all scripts run', async () => {
@@ -203,22 +253,29 @@ async function main() {
     });
     await test('unavailable local storage does not prevent startup', async () => {
       const blocked = await context.newPage();
-      blocked.on('pageerror', error => errors.push(error.message));
+      blocked.on('pageerror', (error) => errors.push(error.message));
       await blocked.addInitScript(() => {
-        Storage.prototype.getItem = () => { throw new Error('Storage denied'); };
-        Storage.prototype.setItem = () => { throw new Error('Storage denied'); };
+        Storage.prototype.getItem = () => {
+          throw new Error('Storage denied');
+        };
+        Storage.prototype.setItem = () => {
+          throw new Error('Storage denied');
+        };
       });
       await blocked.goto(url);
       assert.equal(await blocked.locator('#parserStatus').innerText(), 'Valid');
       await blocked.locator('#themeToggle').click();
-      assert.ok(await blocked.locator('body').evaluate(el => el.classList.contains('dark')));
+      assert.ok(await blocked.locator('body').evaluate((el) => el.classList.contains('dark')));
       await blocked.close();
     });
     await test('no uncaught browser errors', async () => assert.deepEqual(errors, []));
     console.log(`ALL ${count} BROWSER TESTS PASSED`);
   } finally {
     if (browser) await browser.close();
-    await new Promise(resolve => server.close(resolve));
+    await new Promise((resolve) => server.close(resolve));
   }
 }
-main().catch(error => { console.error(error); process.exitCode = 1; });
+main().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});

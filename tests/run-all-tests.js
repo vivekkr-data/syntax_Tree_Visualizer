@@ -6,7 +6,7 @@ const suites = [
   'lexical-and-syntax-tests.js',
   'compiler-pipeline-tests.js',
   'll1-grammar-tests.js',
-  'compiler-backend-tests.js'
+  'compiler-backend-tests.js',
 ];
 
 for (const suite of suites) {

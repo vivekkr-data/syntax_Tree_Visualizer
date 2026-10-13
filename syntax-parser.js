@@ -3,15 +3,46 @@
 
   const DECLARATION_KEYWORDS = new Set(['let', 'var', 'const']);
   const TYPE_KEYWORDS = new Set([
-    'int', 'float', 'double', 'char', 'string', 'bool', 'void',
-    'short', 'long', 'signed', 'unsigned'
+    'int',
+    'float',
+    'double',
+    'char',
+    'string',
+    'bool',
+    'void',
+    'short',
+    'long',
+    'signed',
+    'unsigned',
   ]);
   const ASSIGNMENT_OPERATORS = new Set([
-    '=', '+=', '-=', '*=', '/=', '%=', '&=', '|=', '^=', '<<=', '>>='
+    '=',
+    '+=',
+    '-=',
+    '*=',
+    '/=',
+    '%=',
+    '&=',
+    '|=',
+    '^=',
+    '<<=',
+    '>>=',
   ]);
-  const VALID_TYPES = new Set(['float', 'double', 'long double', 'bool', 'string', 'void']
-    .map(type => type.split(' ').sort().join(' ')));
-  for (const base of ['int', 'short', 'short int', 'long', 'long int', 'long long', 'long long int', 'char']) {
+  const VALID_TYPES = new Set(
+    ['float', 'double', 'long double', 'bool', 'string', 'void'].map((type) =>
+      type.split(' ').sort().join(' '),
+    ),
+  );
+  for (const base of [
+    'int',
+    'short',
+    'short int',
+    'long',
+    'long int',
+    'long long',
+    'long long int',
+    'char',
+  ]) {
     for (const sign of ['', 'signed', 'unsigned']) {
       VALID_TYPES.add(`${sign} ${base}`.trim().split(/\s+/).sort().join(' '));
     }
@@ -99,7 +130,8 @@
       while (TYPE_KEYWORDS.has(this.peek().lexeme)) parts.push(this.advance().lexeme);
       if (parts.length === 0) throw new ParserError('Expected a data type', this.peek());
       // Ignore specifier order, but reject contradictory or repeated type words.
-      if (!VALID_TYPES.has([...parts].sort().join(' '))) throw new ParserError(`Invalid type combination '${parts.join(' ')}'`, start);
+      if (!VALID_TYPES.has([...parts].sort().join(' ')))
+        throw new ParserError(`Invalid type combination '${parts.join(' ')}'`, start);
       return parts.join(' ');
     }
 
@@ -109,7 +141,8 @@
         let pointerDepth = 0;
         while (this.matchLexeme('*')) pointerDepth += 1;
         const name = this.consumeType('IDENTIFIER', `Expected a variable name after ${kind}`);
-        if (explicitDataType === 'void' && pointerDepth === 0) throw new ParserError('A variable cannot have type void', name);
+        if (explicitDataType === 'void' && pointerDepth === 0)
+          throw new ParserError('A variable cannot have type void', name);
         const dimensions = [];
         while (this.matchLexeme('[')) {
           let size = null;
@@ -127,7 +160,7 @@
           loc: { line: name.line, column: name.column },
           pointerDepth,
           dimensions,
-          initializer
+          initializer,
         });
       } while (this.matchLexeme(','));
 
@@ -150,7 +183,8 @@
           let pointerDepth = 0;
           while (this.matchLexeme('*')) pointerDepth += 1;
           const parameter = this.consumeType('IDENTIFIER', 'Expected a parameter name');
-          if (dataType === 'void' && pointerDepth === 0) throw new ParserError('Use void alone for an empty parameter list', parameter);
+          if (dataType === 'void' && pointerDepth === 0)
+            throw new ParserError('Use void alone for an empty parameter list', parameter);
           const dimensions = [];
           while (this.matchLexeme('[')) {
             let size = null;
@@ -158,7 +192,14 @@
             this.consumeLexeme(']', "Expected ']' after parameter array size");
             dimensions.push(size);
           }
-          parameters.push({ type: 'Parameter', name: parameter.lexeme, dataType, pointerDepth, dimensions, loc: { line: parameter.line, column: parameter.column } });
+          parameters.push({
+            type: 'Parameter',
+            name: parameter.lexeme,
+            dataType,
+            pointerDepth,
+            dimensions,
+            loc: { line: parameter.line, column: parameter.column },
+          });
         } while (this.matchLexeme(','));
       }
 
@@ -171,7 +212,7 @@
         returnType: returnType || 'inferred',
         returnPointerDepth,
         parameters,
-        body
+        body,
       };
     }
 
@@ -234,7 +275,9 @@
     forExpressionList() {
       const expressions = [this.expression()];
       while (this.matchLexeme(',')) expressions.push(this.expression());
-      return expressions.length === 1 ? expressions[0] : { type: 'SequenceExpression', expressions };
+      return expressions.length === 1
+        ? expressions[0]
+        : { type: 'SequenceExpression', expressions };
     }
 
     doWhileStatement() {
@@ -250,7 +293,11 @@
     controlBody() {
       const start = this.peek();
       const body = this.statement();
-      if (['VariableDeclaration', 'VariableDeclarationList', 'FunctionDeclaration'].includes(body.type)) {
+      if (
+        ['VariableDeclaration', 'VariableDeclarationList', 'FunctionDeclaration'].includes(
+          body.type,
+        )
+      ) {
         throw new ParserError('Wrap declarations in a block with braces', start);
       }
       return body;
@@ -283,7 +330,9 @@
       return { type: 'ExpressionStatement', expression };
     }
 
-    expression() { return this.assignment(); }
+    expression() {
+      return this.assignment();
+    }
 
     assignment() {
       const left = this.conditional();
@@ -309,22 +358,47 @@
       return expression;
     }
 
-    logicalOr() { return this.binary(() => this.logicalAnd(), ['||']); }
-    logicalAnd() { return this.binary(() => this.bitwiseOr(), ['&&']); }
-    bitwiseOr() { return this.binary(() => this.bitwiseXor(), ['|']); }
-    bitwiseXor() { return this.binary(() => this.bitwiseAnd(), ['^']); }
-    bitwiseAnd() { return this.binary(() => this.equality(), ['&']); }
-    equality() { return this.binary(() => this.comparison(), ['==', '!=']); }
-    comparison() { return this.binary(() => this.shift(), ['<', '<=', '>', '>=']); }
-    shift() { return this.binary(() => this.term(), ['<<', '>>']); }
-    term() { return this.binary(() => this.factor(), ['+', '-']); }
-    factor() { return this.binary(() => this.unary(), ['*', '/', '%']); }
+    logicalOr() {
+      return this.binary(() => this.logicalAnd(), ['||']);
+    }
+    logicalAnd() {
+      return this.binary(() => this.bitwiseOr(), ['&&']);
+    }
+    bitwiseOr() {
+      return this.binary(() => this.bitwiseXor(), ['|']);
+    }
+    bitwiseXor() {
+      return this.binary(() => this.bitwiseAnd(), ['^']);
+    }
+    bitwiseAnd() {
+      return this.binary(() => this.equality(), ['&']);
+    }
+    equality() {
+      return this.binary(() => this.comparison(), ['==', '!=']);
+    }
+    comparison() {
+      return this.binary(() => this.shift(), ['<', '<=', '>', '>=']);
+    }
+    shift() {
+      return this.binary(() => this.term(), ['<<', '>>']);
+    }
+    term() {
+      return this.binary(() => this.factor(), ['+', '-']);
+    }
+    factor() {
+      return this.binary(() => this.unary(), ['*', '/', '%']);
+    }
 
     binary(parseOperand, operators) {
       let expression = parseOperand();
       while (operators.includes(this.peek().lexeme)) {
         const operator = this.advance().lexeme;
-        expression = { type: 'BinaryExpression', operator, left: expression, right: parseOperand() };
+        expression = {
+          type: 'BinaryExpression',
+          operator,
+          left: expression,
+          right: parseOperand(),
+        };
       }
       return expression;
     }
@@ -358,7 +432,12 @@
           if (!this.isAssignable(expression)) {
             throw new ParserError('Invalid update target', this.previous());
           }
-          expression = { type: 'UpdateExpression', operator: this.previous().lexeme, argument: expression, prefix: false };
+          expression = {
+            type: 'UpdateExpression',
+            operator: this.previous().lexeme,
+            argument: expression,
+            prefix: false,
+          };
         } else {
           break;
         }
@@ -367,15 +446,23 @@
     }
 
     primary() {
-      if (this.matchType('NUMBER', 'STRING')) return { type: 'Literal', value: this.previous().literal };
+      if (this.matchType('NUMBER', 'STRING'))
+        return { type: 'Literal', value: this.previous().literal };
       if (this.matchLexeme('true')) return { type: 'Literal', value: true };
       if (this.matchLexeme('false')) return { type: 'Literal', value: false };
-      if (this.matchType('IDENTIFIER')) return { type: 'Identifier', name: this.previous().lexeme, loc: { line: this.previous().line, column: this.previous().column } };
+      if (this.matchType('IDENTIFIER'))
+        return {
+          type: 'Identifier',
+          name: this.previous().lexeme,
+          loc: { line: this.previous().line, column: this.previous().column },
+        };
 
       if (this.matchLexeme('[')) {
         const elements = [];
         if (!this.checkLexeme(']')) {
-          do { elements.push(this.expression()); } while (this.matchLexeme(','));
+          do {
+            elements.push(this.expression());
+          } while (this.matchLexeme(','));
         }
         this.consumeLexeme(']', "Expected ']' after array elements");
         return { type: 'ArrayExpression', elements };
@@ -384,7 +471,9 @@
       if (this.matchLexeme('{')) {
         const elements = [];
         if (!this.checkLexeme('}')) {
-          do { elements.push(this.expression()); } while (this.matchLexeme(','));
+          do {
+            elements.push(this.expression());
+          } while (this.matchLexeme(','));
         }
         this.consumeLexeme('}', "Expected '}' after initializer list");
         return { type: 'ArrayExpression', elements };
@@ -396,13 +485,18 @@
         return { type: 'GroupingExpression', expression };
       }
 
-      throw new ParserError(`Expected an expression but found '${this.peek().lexeme}'`, this.peek());
+      throw new ParserError(
+        `Expected an expression but found '${this.peek().lexeme}'`,
+        this.peek(),
+      );
     }
 
     finishCall(callee) {
       const args = [];
       if (!this.checkLexeme(')')) {
-        do { args.push(this.expression()); } while (this.matchLexeme(','));
+        do {
+          args.push(this.expression());
+        } while (this.matchLexeme(','));
       }
       this.consumeLexeme(')', "Expected ')' after function arguments");
       return { type: 'CallExpression', callee, arguments: args };
@@ -445,13 +539,28 @@
       throw new ParserError(message, this.peek());
     }
 
-    checkLexeme(lexeme) { return !this.isAtEnd() && this.peek().lexeme === lexeme; }
-    checkType(type) { return !this.isAtEnd() && this.peek().type === type; }
-    advance() { if (!this.isAtEnd()) this.current += 1; return this.previous(); }
-    isAtEnd() { return this.peek().type === 'EOF'; }
-    peek() { return this.tokens[this.current]; }
-    peekAt(offset) { return this.tokens[Math.min(this.current + offset, this.tokens.length - 1)]; }
-    previous() { return this.tokens[this.current - 1]; }
+    checkLexeme(lexeme) {
+      return !this.isAtEnd() && this.peek().lexeme === lexeme;
+    }
+    checkType(type) {
+      return !this.isAtEnd() && this.peek().type === type;
+    }
+    advance() {
+      if (!this.isAtEnd()) this.current += 1;
+      return this.previous();
+    }
+    isAtEnd() {
+      return this.peek().type === 'EOF';
+    }
+    peek() {
+      return this.tokens[this.current];
+    }
+    peekAt(offset) {
+      return this.tokens[Math.min(this.current + offset, this.tokens.length - 1)];
+    }
+    previous() {
+      return this.tokens[this.current - 1];
+    }
   }
 
   global.SyntaxParser = { Parser, ParserError };

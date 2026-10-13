@@ -85,7 +85,7 @@ Walks through the generated AST and collects functions, parameters, and variable
 
 ### 7.9 Semantic and Intermediate-Code Module
 
-Builds lexical scopes, resolves identifier uses and reports implemented semantic errors. Valid scalar input is lowered to TAC/quadruples; supported literal expressions are folded in an independent optimized listing. Labels and branch instructions define a basic-block CFG.
+Builds lexical scopes, resolves identifier uses (including array-size expressions in parameters) and reports implemented semantic errors. Valid scalar input is lowered to TAC/quadruples; supported literal expressions are folded in an independent optimized listing. Labels and branch instructions define a basic-block CFG.
 
 ### 7.10 Compiler Backend
 
@@ -240,7 +240,7 @@ Expected: the preprocessor line is ignored and a valid tree is generated for the
 
 ### Automated Regression Suite
 
-Run `node tests/run-all-tests.js` for all 176 core checks (61 tokenizer/parser, 65 compiler, 26 grammar, 24 backend). The compiler and backend suites contain test-only evaluators for known expected results, including recursion, loop control, short-circuit side effects and negative zero. Backend fixtures check original/optimized TAC at three register budgets.
+Run `node tests/run-all-tests.js` for all 183 core checks (61 tokenizer/parser, 68 compiler, 30 grammar, 24 backend). The compiler and backend suites contain test-only evaluators for known expected results, including recursion, loop control, short-circuit side effects and negative zero. Backend fixtures check original/optimized TAC at three register budgets.
 
 The optional `tests/browser-integration-tests.js` checks real browser interactions, source examples, downloads, grammar traces, responsive layout and blocked clipboard/storage handling. Installation and execution steps are in the [Project Guide](README.md#9-tests-and-verification).
 

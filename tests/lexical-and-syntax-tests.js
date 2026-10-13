@@ -23,19 +23,28 @@ const validPrograms = [
   ['void pointer declaration', 'void *p; void *identity(void *p){return p;}'],
   ['operator precedence', 'let result = 4 + 5 * 2 - 8 / 2; print(result);'],
   ['logical expressions', 'bool allowed = age >= 18 && active == true || admin;'],
-  ['nested if and else-if', 'if (a > b) { if (a > c) print(a); else print(c); } else if (b > c) print(b); else print(c);'],
+  [
+    'nested if and else-if',
+    'if (a > b) { if (a > c) print(a); else print(c); } else if (b > c) print(b); else print(c);',
+  ],
   ['while loop', 'int i = 0; while (i < 5) { i++; }'],
   ['do-while loop', 'int i = 0; do { ++i; } while (i < 5);'],
   ['for declaration', 'for (int i = 0; i < 10; i++) { if (i == 4) continue; }'],
   ['for expression lists', 'int i = 0, j = 9; for (i = 0, j = 9; i < j; i++, j--) print(i);'],
   ['one-dimensional array', 'int values[3] = {1, 2, 3}; values[1] *= 4;'],
   ['multi-dimensional array', 'int matrix[2][2] = {{1, 2}, {3, 4}}; print(matrix[1][0]);'],
-  ['typed recursive C program', '#include <stdio.h>\nint factorial(int n) { if (n <= 1) return 1; return n * factorial(n - 1); } int main(void) { int answer = factorial(5); printf("%d", answer); return 0; }'],
+  [
+    'typed recursive C program',
+    '#include <stdio.h>\nint factorial(int n) { if (n <= 1) return 1; return n * factorial(n - 1); } int main(void) { int answer = factorial(5); printf("%d", answer); return 0; }',
+  ],
   ['function keyword', 'function add(a, b) { return a + b; } print(add(2, 3));'],
   ['qualified declaration', 'const int limit = 10; unsigned long total = 0;'],
   ['pointer assignment', 'int value = 7; int *ptr = &value; *ptr = 9; (*ptr)++;'],
   ['pointer-return function', 'int *identity(int *value) { return value; }'],
-  ['comments and escaped strings', '/* setup */ string text = "hello\\nworld"; // output\nprintf("%s", text);'],
+  [
+    'comments and escaped strings',
+    '/* setup */ string text = "hello\\nworld"; // output\nprintf("%s", text);',
+  ],
   ['character literal', "char grade = 'A'; print(grade);"],
   ['ternary expression', 'int max = a > b ? a : b;'],
   ['bitwise and shifts', 'int flags = (5 << 2) | 3; flags ^= 1;'],
@@ -44,7 +53,7 @@ const validPrograms = [
   ['multiple declarations', 'double a = 1.5, b = 2.5, result; result = a + b;'],
   ['empty function call', 'function ready() { return true; } print(ready());'],
   ['void return', 'void log(void) { print("done"); return; }'],
-  ['single-statement branches', 'if (ready) print("yes"); else print("no");']
+  ['single-statement branches', 'if (ready) print("yes"); else print("no");'],
 ];
 
 const invalidPrograms = [
@@ -73,7 +82,7 @@ const invalidPrograms = [
   ['unterminated comment', 'int x = 1; /* never closed'],
   ['unknown character', 'int x = 2 @ 3;'],
   ['missing parenthesis', 'while (x < 3 { x++; }'],
-  ['void variable', 'void value;']
+  ['void variable', 'void value;'],
 ];
 
 let passed = 0;
@@ -89,8 +98,8 @@ for (const [name, source] of validPrograms) {
 for (const [name, source] of invalidPrograms) {
   assert.throws(
     () => parse(source),
-    error => /line \d+, column \d+/.test(error.message),
-    `${name}: error should contain line and column`
+    (error) => /line \d+, column \d+/.test(error.message),
+    `${name}: error should contain line and column`,
   );
   passed += 1;
   console.log(`PASS invalid: ${name}`);
