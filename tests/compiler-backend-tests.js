@@ -1,7 +1,7 @@
 'use strict';
 const assert = require('node:assert/strict');
 global.window = global;
-require('../tokenizer.js');require('../parser.js');require('../compiler.js');require('../backend.js');
+require('../lexical-analyzer.js');require('../syntax-parser.js');require('../compiler-pipeline.js');require('../compiler-backend.js');
 let count=0;
 function test(name, run){run();count++;console.log(`PASS backend: ${name}`);}
 const compile=source=>SyntaxCompiler.compile(new SyntaxParser.Parser(new SyntaxTokenizer.Tokenizer(source).tokenize()).parse());

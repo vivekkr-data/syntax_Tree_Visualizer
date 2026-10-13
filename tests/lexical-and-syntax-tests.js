@@ -4,8 +4,8 @@ const assert = require('node:assert/strict');
 const path = require('node:path');
 
 global.window = global;
-require(path.join(__dirname, '..', 'tokenizer.js'));
-require(path.join(__dirname, '..', 'parser.js'));
+require(path.join(__dirname, '..', 'lexical-analyzer.js'));
+require(path.join(__dirname, '..', 'syntax-parser.js'));
 
 function tokenize(source) {
   return new SyntaxTokenizer.Tokenizer(source).tokenize();

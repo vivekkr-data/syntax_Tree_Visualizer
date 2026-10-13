@@ -1,6 +1,6 @@
 'use strict';
 const assert = require('node:assert/strict');
-global.window = global; require('../grammar.js');
+global.window = global; require('../ll1-grammar-analyzer.js');
 let count = 0;
 function test(name, run) { run(); count++; console.log(`PASS grammar: ${name}`); }
 const expression = 'E -> T E_tail\nE_tail -> + T E_tail | ε\nT -> F T_tail\nT_tail -> * F T_tail | ε\nF -> ( E ) | id';

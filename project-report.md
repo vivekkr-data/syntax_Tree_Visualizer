@@ -30,7 +30,7 @@ Compiler data structures such as syntax trees are difficult to understand only t
 
 ## 5. Scope
 
-The current project supports inferred, qualified, and typed variable declarations; functions; one-dimensional and multi-dimensional arrays; indexing; simple pointer expressions and dereferenced assignments; arithmetic, logical, bitwise, shift, and conditional expressions; generic calls such as `printf` and `scanf`; if/else chains; while/for/do-while loops; return/break/continue statements; literals; and comments. Common preprocessor lines such as `#include` are ignored before parsing, matching their position before compiler syntax analysis. The extension adds scoped semantic checks, scalar TAC, quadruples, literal constant folding and CFG construction. The syllabus-based expansion adds configurable FIRST/FOLLOW and LL(1) table construction, predictive traces, live-variable analysis, next use and local register allocation to a symbolic target. Complete language standards, memory lowering for arrays/pointers, and native machine-code generation remain outside the scope. See [README](README.md#6-supported-language-and-exact-boundaries) for exact pass boundaries.
+The current project supports inferred, qualified, and typed variable declarations; functions; one-dimensional and multi-dimensional arrays; indexing; simple pointer expressions and dereferenced assignments; arithmetic, logical, bitwise, shift, and conditional expressions; generic calls such as `printf` and `scanf`; if/else chains; while/for/do-while loops; return/break/continue statements; literals; and comments. Common preprocessor lines such as `#include` are ignored before parsing, matching their position before compiler syntax analysis. The extension adds scoped semantic checks, scalar TAC, quadruples, literal constant folding and CFG construction. The syllabus-based expansion adds configurable FIRST/FOLLOW and LL(1) table construction, predictive traces, live-variable analysis, next use and local register allocation to a symbolic target. Complete language standards, memory lowering for arrays/pointers, and native machine-code generation remain outside the scope. See [Project Guide](README.md#6-supported-language-and-exact-boundaries) for exact pass boundaries.
 
 ## 6. Technologies Used
 
@@ -240,9 +240,9 @@ Expected: the preprocessor line is ignored and a valid tree is generated for the
 
 ### Automated Regression Suite
 
-Run `node tests/run-tests.js` for all 176 core checks (61 tokenizer/parser, 65 compiler, 26 grammar, 24 backend). The compiler and backend suites contain test-only evaluators for known expected results, including recursion, loop control, short-circuit side effects and negative zero. Backend fixtures check original/optimized TAC at three register budgets.
+Run `node tests/run-all-tests.js` for all 176 core checks (61 tokenizer/parser, 65 compiler, 26 grammar, 24 backend). The compiler and backend suites contain test-only evaluators for known expected results, including recursion, loop control, short-circuit side effects and negative zero. Backend fixtures check original/optimized TAC at three register budgets.
 
-The optional `tests/browser-tests.js` checks real browser interactions, source examples, downloads, grammar traces, responsive layout and blocked clipboard/storage handling. Installation and execution steps are in the [README](README.md#9-tests-and-verification).
+The optional `tests/browser-integration-tests.js` checks real browser interactions, source examples, downloads, grammar traces, responsive layout and blocked clipboard/storage handling. Installation and execution steps are in the [Project Guide](README.md#9-tests-and-verification).
 
 ## 13. Advantages
 

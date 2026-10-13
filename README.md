@@ -4,7 +4,7 @@ A browser-based **Compiler Design project** built with HTML, CSS and plain JavaS
 
 **Project purpose:** make compiler stages visible so a student can explain what each stage receives, what it does and what it produces.
 
-[Existing Render website](https://syntax-tree-visualizer-fwpv.onrender.com/) · [Project report](PROJECT_REPORT.md)
+[Open Live Project](https://syntax-tree-visualizer-fwpv.onrender.com/) · [Read Project Report](project-report.md)
 
 The website generates compilation artifacts; **it does not run the source program or display its runtime output**. Arrays and pointers can be parsed and visualized, but the later code-generation stages support scalar programs only. The Render website may serve an older revision until its deployment updates.
 
@@ -135,13 +135,13 @@ This straight-line example forms one basic block. Code Generation lowers its TAC
 
 ## 4. Understand every compiler stage
 
-### 4.1 Tokenizer — `tokenizer.js`
+### 4.1 Tokenizer — `lexical-analyzer.js`
 
 `Tokenizer.tokenize()` scans source from left to right. It recognizes identifiers/keywords, decimal numbers, quoted strings/characters, operators and punctuation. Three-character operators are checked before two-character and one-character operators, so `>>=` remains one token.
 
 Each token stores `type`, `lexeme`, `literal`, `line` and `column`. The lexeme preserves source spelling; the literal stores the decoded value. Whitespace and comments are skipped while locations are updated. Lines whose first non-whitespace character is `#` are ignored; macro expansion is not performed.
 
-### 4.2 Recursive-descent parser — `parser.js`
+### 4.2 Recursive-descent parser — `syntax-parser.js`
 
 `Parser.parse()` consumes the token stream and builds the Program AST. Statement methods handle declarations, functions, blocks, conditions and loops. Expression methods implement precedence and associativity. `consumeLexeme()` reports missing expected syntax with a line and column.
 
@@ -161,7 +161,7 @@ Each token stores `type`, `lexeme`, `literal`, `line` and `column`. The lexeme p
 
 Parentheses override precedence. `a = b = 5` parses as `a = (b = 5)`. Assignment/update targets must be identifiers, indexed expressions or dereferences, possibly parenthesized. Full C lvalue/type compatibility is outside scope.
 
-### 4.3 AST visualization — `visualizer.js`
+### 4.3 AST visualization — `syntax-tree-visualizer.js`
 
 The visualizer wraps each AST node with an ID, parent, children, depth and position. A postorder layout spaces leaves horizontally, places parents above their children and uses depth for vertical position. SVG paths draw edges; SVG groups draw clickable nodes. Transforms implement zoom and pan without rebuilding the AST.
 
@@ -313,26 +313,28 @@ A concise introduction for evaluation: “This project visualizes a compiler pip
 
 ## 8. Files and functions to explain
 
-Read the implementation in this order:
+Read the implementation in this order. File names describe their responsibility; select a file link to open its code:
 
 | File | Main entry points | Responsibility |
 | --- | --- | --- |
-| `index.html`, `style.css` | Sections, controls, responsive rules | Interface structure and appearance |
-| `tokenizer.js` | tokenize, scanToken, number, string | Source characters → token objects |
-| `parser.js` | parse, statement, assignment, binary, primary | Tokens → AST |
-| `visualizer.js` | render, layoutTree, traversal, exportSvg | AST → interactive SVG |
-| `compiler.js` | analyze, compile, generate, buildCFG, format | Semantics, TAC, constant folding and CFG |
-| `backend.js` | operands, dataFlow, generate, format | Liveness, next use and symbolic target code |
-| `grammar.js` | parseGrammar, analyze, trace | Grammar sets, LL(1) table and trace |
-| `ui-utils.js` | table, downloadText | Shared safe table rendering and downloads |
-| `app.js` | parseAndRender, invalidateAnalysis | Examples, editor, AST inspector and traversal events |
-| `compiler-ui.js` | render, renderBackend, graph | Compiler panels and report export |
-| `grammar-ui.js` | analyze, renderTrace | Grammar editor and trace controls |
-| `tests/` | run-tests.js; separate suites | Core regressions and optional browser integration checks |
+| [index.html](index.html), [application-styles.css](application-styles.css) | Sections, controls, responsive rules | Interface structure and appearance |
+| [lexical-analyzer.js](lexical-analyzer.js) | tokenize, scanToken, number, string | Source characters → token objects |
+| [syntax-parser.js](syntax-parser.js) | parse, statement, assignment, binary, primary | Tokens → AST |
+| [syntax-tree-visualizer.js](syntax-tree-visualizer.js) | render, layoutTree, traversal, exportSvg | AST → interactive SVG |
+| [compiler-pipeline.js](compiler-pipeline.js) | analyze, compile, generate, buildCFG, format | Semantics, TAC, constant folding and CFG |
+| [compiler-backend.js](compiler-backend.js) | operands, dataFlow, generate, format | Liveness, next use and symbolic target code |
+| [ll1-grammar-analyzer.js](ll1-grammar-analyzer.js) | parseGrammar, analyze, trace | Grammar sets, LL(1) table and trace |
+| [ui-helpers.js](ui-helpers.js) | table, downloadText | Shared safe table rendering and downloads |
+| [app-controller.js](app-controller.js) | parseAndRender, invalidateAnalysis | Examples, editor, AST inspector and traversal events |
+| [compiler-workbench-ui.js](compiler-workbench-ui.js) | render, renderBackend, graph | Compiler panels and report export |
+| [grammar-lab-ui.js](grammar-lab-ui.js) | analyze, renderTrace | Grammar editor and trace controls |
+| [tests/](tests/) | run-all-tests.js; separate suites | Core regressions and optional browser integration checks |
 
-`app.js` sends `compiler:parsed` with the AST/source; `compiler-ui.js` listens and runs compilation. Reset/stale events clear the workbench. Deferred scripts load in dependency order; compiler listeners are installed before the app's initial analysis.
+`app-controller.js` sends `compiler:parsed` with the AST/source; `compiler-workbench-ui.js` listens and runs compilation. Reset/stale events clear the workbench. Deferred scripts load in dependency order; compiler listeners are installed before the app's initial analysis.
 
-There is no web-server backend. The filename `backend.js` means the **compiler backend** running in the browser. Source is processed locally; the app has no source-upload API.
+`index.html` is the standard website entry file, `README.md` is the GitHub project guide, and `.gitignore` keeps local dependencies/test screenshots out of Git. These standard names are retained. The academic report is [project-report.md](project-report.md).
+
+There is no web-server backend. The filename `compiler-backend.js` means the **compiler backend** running in the browser. Source is processed locally; the app has no source-upload API.
 
 Tokenization is O(n) in source length. Parsing is normally O(t) in token count. AST wrapping, layout and each traversal are O(v) in node count. Grammar set propagation and liveness use fixed-point iteration; their cost depends on grammar/CFG size and the number of passes, so they are not claimed to be universally linear.
 
@@ -341,16 +343,16 @@ Tokenization is O(n) in source length. Parsing is normally O(t) in token count. 
 Run all dependency-free core suites with Node.js 18 or newer:
 
 ```bash
-node tests/run-tests.js
+node tests/run-all-tests.js
 ```
 
 Or run suites individually:
 
 ```bash
-node tests/parser-tests.js
-node tests/compiler-tests.js
-node tests/grammar-tests.js
-node tests/backend-tests.js
+node tests/lexical-and-syntax-tests.js
+node tests/compiler-pipeline-tests.js
+node tests/ll1-grammar-tests.js
+node tests/compiler-backend-tests.js
 ```
 
 The core suites contain **176 named checks**: 61 tokenizer/parser, 65 compiler, 26 grammar and 24 backend. Backend behavior fixtures run both original and optimized TAC with all three register counts. Test-only evaluators compare known results for arithmetic, branches, short circuits, loops, recursion, argument order and globals. These evaluators are not loaded by `index.html`.
@@ -362,7 +364,7 @@ Optional browser checks require Playwright and its Chromium browser:
 ```bash
 npm install --no-save --package-lock=false playwright
 npx playwright install chromium
-node tests/browser-tests.js
+node tests/browser-integration-tests.js
 ```
 
 The browser suite contains **16 grouped checks**. It serves the app on a temporary local port, tests examples and controls, verifies exported data, checks stale-result clearing, simulates denied clipboard/storage access and checks a mobile viewport. Screenshots go to ignored `test-results/`. Playwright is a test tool only; it is not a website dependency. Passing these tests is evidence for the covered cases, not a proof that every possible program is supported.

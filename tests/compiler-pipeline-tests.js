@@ -1,7 +1,7 @@
 'use strict';
 const assert = require('node:assert/strict');
 global.window = global;
-require('../tokenizer.js'); require('../parser.js'); require('../compiler.js');
+require('../lexical-analyzer.js'); require('../syntax-parser.js'); require('../compiler-pipeline.js');
 const compile = source => SyntaxCompiler.compile(new SyntaxParser.Parser(new SyntaxTokenizer.Tokenizer(source).tokenize()).parse());
 let count = 0;
 function test(name, run) { run(); count++; console.log(`PASS ${name}`); }
@@ -151,7 +151,7 @@ test('CFG marks unreachable blocks and separates functions', () => {
   assert.ok(r.cfg.edges.every(e=>r.cfg.blocks.find(b=>b.id===e.from).section===r.cfg.blocks.find(b=>b.id===e.to).section));
 });
 test('all built-in samples compile or explain limitation', () => {
-  const fs=require('node:fs'),vm=require('node:vm');const text=fs.readFileSync(require('node:path').join(__dirname,'../app.js'),'utf8');
+  const fs=require('node:fs'),vm=require('node:vm');const text=fs.readFileSync(require('node:path').join(__dirname,'../app-controller.js'),'utf8');
   const samples=vm.runInNewContext(`(${text.match(/const samples = (\{[\s\S]*?\n  \});/)[1]})`);
   Object.entries(samples).forEach(([name, source])=>{const r=compile(source);if(name==='errors')assert.equal(r.valid,false);else assert.ok(r.valid,`${name}: ${JSON.stringify(r.diagnostics)}`);assert.ok(r.ir||r.limitations.length||!r.valid);});
 });

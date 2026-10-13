@@ -5,17 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="Interactive syntax tree visualizer for learning compiler design." />
   <title>Syntax Tree Visualizer</title>
-  <link rel="stylesheet" href="style.css?v=20261012-1" />
-  <script defer src="tokenizer.js?v=20261012-1"></script>
-  <script defer src="parser.js?v=20261012-1"></script>
-  <script defer src="visualizer.js?v=20261012-1"></script>
-  <script defer src="compiler.js?v=20261012-1"></script>
-  <script defer src="backend.js?v=20261012-1"></script>
-  <script defer src="grammar.js?v=20261012-1"></script>
-  <script defer src="ui-utils.js?v=20261012-1"></script>
-  <script defer src="grammar-ui.js?v=20261012-1"></script>
-  <script defer src="compiler-ui.js?v=20261012-1"></script>
-  <script defer src="app.js?v=20261012-1"></script>
+  <link rel="stylesheet" href="application-styles.css?v=20261013-1" />
+  <script defer src="lexical-analyzer.js?v=20261013-1"></script>
+  <script defer src="syntax-parser.js?v=20261013-1"></script>
+  <script defer src="syntax-tree-visualizer.js?v=20261013-1"></script>
+  <script defer src="compiler-pipeline.js?v=20261013-1"></script>
+  <script defer src="compiler-backend.js?v=20261013-1"></script>
+  <script defer src="ll1-grammar-analyzer.js?v=20261013-1"></script>
+  <script defer src="ui-helpers.js?v=20261013-1"></script>
+  <script defer src="grammar-lab-ui.js?v=20261013-1"></script>
+  <script defer src="compiler-workbench-ui.js?v=20261013-1"></script>
+  <script defer src="app-controller.js?v=20261013-1"></script>
 </head>
 <body>
   <header class="topbar">
@@ -54,7 +54,7 @@
     </div>
   </section>
 
-  <nav class="workbench-nav" aria-label="Workbench sections"><a href="#editorTitle">Source &amp; AST</a><a href="#compilerLab">Compiler Stages</a><a href="#grammarLab">Grammar Lab</a></nav>
+  <nav class="workbench-nav" aria-label="Workbench sections"><a href="#editorTitle">Source Code &amp; AST</a><a href="#compilerLab">Compiler Workbench</a><a href="#grammarLab">LL(1) Grammar Lab</a></nav>
   <main class="app-shell">
     <section class="editor-panel panel" aria-labelledby="editorTitle">
       <div class="panel-label">01 · Input</div>
